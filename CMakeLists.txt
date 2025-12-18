@@ -94,10 +94,48 @@ target_link_libraries(AnkiImage2Card PRIVATE
 )
 
 if(APPLE)
+    # Copy assets to Resources directory
     add_custom_command(TARGET AnkiImage2Card POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/assets
         $<TARGET_FILE_DIR:AnkiImage2Card>/../Resources/assets
+    )
+
+    # Create Frameworks directory in the app bundle
+    add_custom_command(TARGET AnkiImage2Card POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+        $<TARGET_FILE_DIR:AnkiImage2Card>/../Frameworks
+    )
+
+    # Copy SDL3 library to Frameworks directory
+    add_custom_command(TARGET AnkiImage2Card POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_BINARY_DIR}/lib/libSDL3.0.dylib
+        $<TARGET_FILE_DIR:AnkiImage2Card>/../Frameworks/libSDL3.0.dylib
+    )
+
+    # Update the SDL3 library's install name to use @rpath
+    add_custom_command(TARGET AnkiImage2Card POST_BUILD
+        COMMAND install_name_tool -id @rpath/libSDL3.0.dylib
+        $<TARGET_FILE_DIR:AnkiImage2Card>/../Frameworks/libSDL3.0.dylib
+    )
+
+    # Update the executable's reference to SDL3 to use @rpath
+    add_custom_command(TARGET AnkiImage2Card POST_BUILD
+        COMMAND install_name_tool -change
+        ${CMAKE_BINARY_DIR}/lib/libSDL3.0.dylib
+        @rpath/libSDL3.0.dylib
+        $<TARGET_FILE:AnkiImage2Card>
+    )
+
+    # Set the rpath in the executable to find frameworks
+    set_target_properties(AnkiImage2Card PROPERTIES
+        MACOSX_BUNDLE_ICON_FILE logo.icns
+        MACOSX_BUNDLE_BUNDLE_NAME "Anki Image2Card"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.ankiimage2card.app"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1.0"
+        MACOSX_BUNDLE_BUNDLE_VERSION "0.1.0"
+        INSTALL_RPATH "@loader_path/../Frameworks"
     )
 else()
     add_custom_command(TARGET AnkiImage2Card POST_BUILD
@@ -109,12 +147,4 @@ endif()
 
 if(WIN32)
     set_target_properties(AnkiImage2Card PROPERTIES WIN32_EXECUTABLE $<CONFIG:Release>)
-elseif(APPLE)
-    set_target_properties(AnkiImage2Card PROPERTIES
-        MACOSX_BUNDLE_ICON_FILE logo.icns
-        MACOSX_BUNDLE_BUNDLE_NAME "Anki Image2Card"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.ankiimage2card.app"
-        MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1.0"
-        MACOSX_BUNDLE_BUNDLE_VERSION "0.1.0"
-    )
 endif()
