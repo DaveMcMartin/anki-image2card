@@ -1,0 +1,357 @@
+#include "ai/GoogleTextProvider.h"
+#include "language/ILanguage.h"
+#include "utils/Base64Utils.h"
+#include <httplib.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
+#include "core/Logger.h"
+#include <iostream>
+#include <sstream>
+#include <algorithm>
+#include <format>
+#include <thread>
+
+namespace Image2Card::AI
+{
+
+GoogleTextProvider::GoogleTextProvider()
+{
+}
+
+GoogleTextProvider::~GoogleTextProvider()
+{
+}
+
+bool GoogleTextProvider::RenderConfigurationUI()
+{
+    bool changed = false;
+
+    if (ImGui::InputText("API Key", &m_ApiKey, ImGuiInputTextFlags_Password))
+    {
+        changed = true;
+    }
+
+    if (m_IsLoadingModels)
+    {
+        if (ImGui::Button("Cancel"))
+        {
+            m_CancelLoadModels.store(true);
+        }
+        ImGui::SameLine();
+        ImGui::Text("Loading...");
+    }
+    else
+    {
+        if (ImGui::Button("Load Models"))
+        {
+            m_CancelLoadModels.store(false);
+            std::thread([this]() { LoadRemoteModels(); }).detach();
+            changed = true;
+        }
+    }
+
+    if (!m_StatusMessage.empty())
+    {
+        ImGui::SameLine();
+        ImGui::Text("%s", m_StatusMessage.c_str());
+    }
+
+    if (ImGui::BeginCombo("Model", m_Model.c_str()))
+    {
+        for (const auto& model : m_AvailableModels)
+        {
+            bool is_selected = (m_Model == model);
+            if (ImGui::Selectable(model.c_str(), is_selected))
+            {
+                m_Model = model;
+                changed = true;
+            }
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    return changed;
+}
+
+void GoogleTextProvider::LoadConfig(const nlohmann::json& json)
+{
+    if (json.contains("api_key")) m_ApiKey = json["api_key"];
+    if (json.contains("model")) m_Model = json["model"];
+    if (json.contains("available_models")) m_AvailableModels = json["available_models"].get<std::vector<std::string>>();
+}
+
+nlohmann::json GoogleTextProvider::SaveConfig() const
+{
+    return {
+        {"api_key", m_ApiKey},
+        {"model", m_Model},
+        {"available_models", m_AvailableModels}
+    };
+}
+
+void GoogleTextProvider::LoadRemoteModels()
+{
+    if (m_ApiKey.empty())
+    {
+        m_StatusMessage = "Error: API Key required.";
+        return;
+    }
+
+    m_IsLoadingModels = true;
+    m_StatusMessage = "";
+
+    try
+    {
+        httplib::Client cli("https://generativelanguage.googleapis.com");
+        cli.set_connection_timeout(240);
+        cli.set_read_timeout(240);
+
+        std::string path = "/v1beta/models?key=" + m_ApiKey;
+        auto res = cli.Get(path);
+
+        if (m_CancelLoadModels.load())
+        {
+            m_IsLoadingModels = false;
+            m_StatusMessage = "Load cancelled.";
+            return;
+        }
+
+        if (res && res->status == 200)
+        {
+            auto json = nlohmann::json::parse(res->body);
+            std::vector<std::string> newModels;
+            if (json.contains("models") && json["models"].is_array())
+            {
+                for (const auto& item : json["models"])
+                {
+                    if (item.contains("name"))
+                    {
+                        std::string name = item["name"];
+                        if (name.rfind("models/", 0) == 0) {
+                            name = name.substr(7);
+                        }
+
+                        if (name.find("gemini") != std::string::npos) {
+                            newModels.push_back(name);
+                        }
+                    }
+                }
+            }
+            m_AvailableModels = newModels;
+            m_StatusMessage = "Models loaded.";
+        }
+        else
+        {
+            m_StatusMessage = "Error loading models: " + std::to_string(res ? res->status : 0);
+        }
+    }
+    catch (const std::exception& e)
+    {
+        m_StatusMessage = std::string("Exception: ") + e.what();
+    }
+
+    m_IsLoadingModels = false;
+}
+
+nlohmann::json GoogleTextProvider::SendRequest(const std::string& endpoint, const nlohmann::json& payload)
+{
+    if (m_ApiKey.empty())
+    {
+        AF_ERROR("GoogleTextProvider Error: API Key is missing.");
+        return nullptr;
+    }
+
+    try
+    {
+        httplib::Client cli("https://generativelanguage.googleapis.com");
+        cli.set_connection_timeout(120);
+        cli.set_read_timeout(120);
+
+        std::string path = endpoint + "?key=" + m_ApiKey;
+
+        httplib::Headers headers = {
+            {"Content-Type", "application/json"}
+        };
+
+        auto res = cli.Post(path, headers, payload.dump(), "application/json");
+
+        if (res && res->status == 200)
+        {
+            return nlohmann::json::parse(res->body);
+        }
+        else
+        {
+            AF_ERROR("GoogleTextProvider HTTP Error: {}", (res ? res->status : 0));
+            if (res) AF_ERROR("Response: {}", res->body);
+            return nullptr;
+        }
+    }
+    catch (const std::exception& e)
+    {
+        AF_ERROR("GoogleTextProvider Exception: {}", e.what());
+        return nullptr;
+    }
+}
+
+std::string GoogleTextProvider::ExtractTextFromImage(const std::vector<unsigned char>& imageBuffer,
+                                                  const std::string& mimeType,
+                                                  Language::ILanguage* language)
+{
+    if (imageBuffer.empty()) return "";
+    if (!language) return "";
+
+    std::string base64Image = Utils::Base64Utils::Encode(imageBuffer);
+
+    nlohmann::json payload = {
+        {"system_instruction", {
+            {"parts", {
+                {{"text", language->GetOCRSystemPrompt()}}
+            }}
+        }},
+        {"contents", {
+            {
+                {"role", "user"},
+                {"parts", {
+                    {
+                        {"inline_data", {
+                            {"mime_type", mimeType},
+                            {"data", base64Image}
+                        }}
+                    },
+                    {
+                        {"text", language->GetOCRUserPrompt()}
+                    }
+                }}
+            }
+        }},
+        {"generationConfig", {
+            {"temperature", 0.0}
+        }}
+    };
+
+#ifndef NDEBUG
+    // Debug logging with truncated image data
+    nlohmann::json debugPayload = payload;
+    try {
+        auto& parts = debugPayload["contents"][0]["parts"];
+        if (parts.is_array() && !parts.empty()) {
+            auto& imagePart = parts[0];
+            if (imagePart.contains("inline_data") && imagePart["inline_data"].contains("data")) {
+                std::string data = imagePart["inline_data"]["data"];
+                if (data.length() > 64) {
+                    imagePart["inline_data"]["data"] = std::format("{}...[truncated, total_len={}]", data.substr(0, 32), data.length());
+                }
+            }
+        }
+        AF_DEBUG("Sending Google OCR Request: {}", debugPayload.dump(2));
+    } catch (...) {}
+#endif
+
+    std::string endpoint = "/v1beta/models/" + m_Model + ":generateContent";
+    auto response = SendRequest(endpoint, payload);
+
+    if (!response.is_null() && response.contains("candidates") && !response["candidates"].empty())
+    {
+        auto& candidate = response["candidates"][0];
+        if (candidate.contains("content") && candidate["content"].contains("parts") && !candidate["content"]["parts"].empty())
+        {
+            std::string content = candidate["content"]["parts"][0]["text"].get<std::string>();
+
+            // Usage logging
+            if (response.contains("usageMetadata")) {
+                AF_INFO("Google Token Usage: Prompt={}, Candidates={}, Total={}",
+                    response["usageMetadata"].value("promptTokenCount", 0),
+                    response["usageMetadata"].value("candidatesTokenCount", 0),
+                    response["usageMetadata"].value("totalTokenCount", 0));
+            }
+
+            // Cleanup markdown
+            size_t start = 0;
+            if (content.find("```") == 0) {
+                start = content.find('\n');
+                if (start != std::string::npos) start++;
+                else start = 3;
+            }
+
+            size_t end = content.length();
+            size_t lastBackticks = content.rfind("```");
+            if (lastBackticks != std::string::npos && lastBackticks > start) {
+                end = lastBackticks;
+                while (end > start && (content[end-1] == '\n' || content[end-1] == '\r')) end--;
+            }
+
+            if (start < end) content = content.substr(start, end - start);
+
+            size_t contentStart = content.find_first_not_of(" \t\n\r");
+            size_t contentEnd = content.find_last_not_of(" \t\n\r");
+            if (contentStart != std::string::npos && contentEnd != std::string::npos) {
+                content = content.substr(contentStart, contentEnd - contentStart + 1);
+            }
+
+            return content;
+        }
+    }
+
+    return "";
+}
+
+nlohmann::json GoogleTextProvider::AnalyzeSentence(const std::string& sentence,
+                                               const std::string& targetWord,
+                                               Language::ILanguage* language)
+{
+    if (!language) return nlohmann::json();
+
+    std::string prompt = language->GetAnalysisUserPrompt(sentence, targetWord);
+
+    nlohmann::json payload = {
+        {"system_instruction", {
+            {"parts", {
+                {{"text", language->GetAnalysisSystemPrompt()}}
+            }}
+        }},
+        {"contents", {
+            {
+                {"role", "user"},
+                {"parts", {
+                    {{"text", prompt}}
+                }}
+            }
+        }},
+        {"generationConfig", {
+            {"temperature", 0.1},
+            {"response_mime_type", "application/json"}
+        }}
+    };
+
+#ifndef NDEBUG
+    AF_DEBUG("Sending Google Analysis Request: {}", payload.dump(2));
+#endif
+
+    std::string endpoint = "/v1beta/models/" + m_Model + ":generateContent";
+    auto response = SendRequest(endpoint, payload);
+
+    if (!response.is_null() && response.contains("candidates") && !response["candidates"].empty())
+    {
+        auto& candidate = response["candidates"][0];
+        if (candidate.contains("content") && candidate["content"].contains("parts") && !candidate["content"]["parts"].empty())
+        {
+            std::string content = candidate["content"]["parts"][0]["text"].get<std::string>();
+            AF_INFO("AnalyzeSentence Response Content: {}", content);
+
+            try
+            {
+                return nlohmann::json::parse(content);
+            }
+            catch (const std::exception& e)
+            {
+                AF_ERROR("JSON Parse Error: {}\nContent: {}", e.what(), content);
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+} // namespace Image2Card::AI
