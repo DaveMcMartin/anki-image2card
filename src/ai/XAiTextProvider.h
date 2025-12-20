@@ -1,17 +1,18 @@
 #pragma once
 
-#include "ai/ITextAIProvider.h"
+#include <atomic>
 #include <string>
 #include <vector>
-#include <atomic>
-#include <atomic>
+
+#include "ai/ITextAIProvider.h"
 
 namespace Image2Card::AI
 {
 
-class XAiTextProvider : public ITextAIProvider
-{
+  class XAiTextProvider : public ITextAIProvider
+  {
 public:
+
     XAiTextProvider();
     ~XAiTextProvider() override;
 
@@ -26,13 +27,13 @@ public:
     void LoadRemoteModels() override;
 
     std::string ExtractTextFromImage(const std::vector<unsigned char>& imageBuffer,
-                                    const std::string& mimeType,
-                                    Language::ILanguage* language) override;
-    nlohmann::json AnalyzeSentence(const std::string& sentence,
-                                  const std::string& targetWord,
-                                  Language::ILanguage* language) override;
+                                     const std::string& mimeType,
+                                     Language::ILanguage* language) override;
+    nlohmann::json
+    AnalyzeSentence(const std::string& sentence, const std::string& targetWord, Language::ILanguage* language) override;
 
 private:
+
     nlohmann::json SendRequest(const std::string& endpoint, const nlohmann::json& payload);
 
     std::string m_ApiKey;
@@ -44,6 +45,6 @@ private:
     std::string m_StatusMessage;
     std::atomic<bool> m_CancelLoadVoices{false};
     std::atomic<bool> m_CancelLoadModels{false};
-};
+  };
 
 } // namespace Image2Card::AI

@@ -1,26 +1,28 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace Image2Card::Audio
 {
-    class AudioPlayer
-    {
-    public:
-        AudioPlayer();
-        ~AudioPlayer();
+  class AudioPlayer
+  {
+public:
 
-        AudioPlayer(const AudioPlayer&) = delete;
-        AudioPlayer& operator=(const AudioPlayer&) = delete;
+    AudioPlayer();
+    ~AudioPlayer();
 
-        bool Play(const std::vector<unsigned char>& data);
+    AudioPlayer(const AudioPlayer&) = delete;
+    AudioPlayer& operator=(const AudioPlayer&) = delete;
 
-        void Stop();
+    bool Play(const std::vector<unsigned char>& data);
 
-    private:
-        struct Impl;
-        std::unique_ptr<Impl> m_Impl;
-    };
-}
+    void Stop();
+
+private:
+
+    struct Impl;
+    std::unique_ptr<Impl> m_Impl;
+  };
+} // namespace Image2Card::Audio

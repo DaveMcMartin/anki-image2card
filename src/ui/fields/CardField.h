@@ -1,9 +1,11 @@
 #pragma once
 
+#include <SDL3/SDL.h>
+
+#include <memory>
 #include <string>
 #include <vector>
-#include <SDL3/SDL.h>
-#include <memory>
+
 #include "audio/AudioPlayer.h"
 #include "core/FieldTypes.h"
 
@@ -12,73 +14,75 @@ struct SDL_Texture;
 
 namespace Image2Card
 {
-namespace UI
-{
+  namespace UI
+  {
 
-enum class CardFieldType
-{
-    Text,
-    Audio,
-    Image
-};
+    enum class CardFieldType
+    {
+      Text,
+      Audio,
+      Image
+    };
 
-class CardField
-{
-public:
-    CardField(const std::string& name);
-    ~CardField();
+    class CardField
+    {
+  public:
 
-    void Render(SDL_Renderer* renderer);
+      CardField(const std::string& name);
+      ~CardField();
 
-    // Getters
-    const std::string& GetName() const { return m_Name; }
-    const std::string& GetValue() const { return m_Value; }
-    const std::vector<unsigned char>& GetBinaryData() const { return m_BinaryData; }
-    CardFieldType GetType() const { return m_Type; }
+      void Render(SDL_Renderer* renderer);
 
-    bool IsToolEnabled() const { return m_IsToolEnabled; }
-    int GetSelectedToolIndex() const { return m_SelectedToolIndex; }
+      // Getters
+      const std::string& GetName() const { return m_Name; }
+      const std::string& GetValue() const { return m_Value; }
+      const std::vector<unsigned char>& GetBinaryData() const { return m_BinaryData; }
+      CardFieldType GetType() const { return m_Type; }
 
-    // Setters
-    void SetValue(const std::string& value);
-    void SetBinaryData(const std::vector<unsigned char>& data, const std::string& filename);
-    void SetType(CardFieldType type);
+      bool IsToolEnabled() const { return m_IsToolEnabled; }
+      int GetSelectedToolIndex() const { return m_SelectedToolIndex; }
 
-    // Auto-fill configuration
-    void SetToolEnabled(bool enabled) { m_IsToolEnabled = enabled; }
-    void SetSelectedToolIndex(int index) { m_SelectedToolIndex = index; }
+      // Setters
+      void SetValue(const std::string& value);
+      void SetBinaryData(const std::vector<unsigned char>& data, const std::string& filename);
+      void SetType(CardFieldType type);
 
-private:
-    void RenderTypeSelector();
-    void RenderTextContent();
-    void RenderAudioContent();
-    void RenderImageContent(SDL_Renderer* renderer);
+      // Auto-fill configuration
+      void SetToolEnabled(bool enabled) { m_IsToolEnabled = enabled; }
+      void SetSelectedToolIndex(int index) { m_SelectedToolIndex = index; }
 
-    void ClearContent();
+  private:
 
-    // File loading helpers
-    void LoadAudioFile();
-    void LoadImageFile();
+      void RenderTypeSelector();
+      void RenderTextContent();
+      void RenderAudioContent();
+      void RenderImageContent(SDL_Renderer* renderer);
 
-    std::string m_Name;
-    CardFieldType m_Type = CardFieldType::Text;
+      void ClearContent();
 
-    // Content
-    std::string m_Value; // Text content or Filename
-    std::vector<unsigned char> m_BinaryData; // Audio or Image data
+      // File loading helpers
+      void LoadAudioFile();
+      void LoadImageFile();
 
-    // Image Preview
-    SDL_Texture* m_ImageTexture = nullptr;
-    int m_ImageWidth = 0;
-    int m_ImageHeight = 0;
-    bool m_TextureNeedsUpdate = false;
+      std::string m_Name;
+      CardFieldType m_Type = CardFieldType::Text;
 
-    // Auto-fill State
-    bool m_IsToolEnabled = false;
-    int m_SelectedToolIndex = 0;
+      // Content
+      std::string m_Value;                     // Text content or Filename
+      std::vector<unsigned char> m_BinaryData; // Audio or Image data
 
-    std::unique_ptr<Audio::AudioPlayer> m_AudioPlayer;
-};
+      // Image Preview
+      SDL_Texture* m_ImageTexture = nullptr;
+      int m_ImageWidth = 0;
+      int m_ImageHeight = 0;
+      bool m_TextureNeedsUpdate = false;
 
-} // namespace UI
+      // Auto-fill State
+      bool m_IsToolEnabled = false;
+      int m_SelectedToolIndex = 0;
+
+      std::unique_ptr<Audio::AudioPlayer> m_AudioPlayer;
+    };
+
+  } // namespace UI
 } // namespace Image2Card

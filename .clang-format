@@ -1,8 +1,8 @@
 BasedOnStyle: LLVM
 Language: Cpp
 Standard: Latest
-IndentWidth: 4
-TabWidth: 4
+IndentWidth: 2
+TabWidth: 2
 UseTab: Never
 ColumnLimit: 120
 AccessModifierOffset: -4
@@ -34,13 +34,13 @@ EmptyLineAfterAccessModifier: Always
 FixNamespaceComments: true
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^<SDL3'
+  - Regex: "^<SDL3"
     Priority: 1
-  - Regex: '^<imgui'
+  - Regex: "^<imgui"
     Priority: 2
-  - Regex: '^<'
+  - Regex: "^<"
     Priority: 3
-  - Regex: '.*'
+  - Regex: ".*"
     Priority: 4
 IndentCaseLabels: true
 KeepEmptyLinesAtTheStartOfBlocks: false

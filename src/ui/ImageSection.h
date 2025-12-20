@@ -1,11 +1,13 @@
 #pragma once
 
-#include "ui/UIComponent.h"
-#include <string>
-#include <functional>
-#include <vector>
-#include <memory>
 #include <imgui.h>
+
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "ui/UIComponent.h"
 
 struct SDL_Texture;
 struct SDL_Renderer;
@@ -13,20 +15,21 @@ struct SDL_Surface;
 
 namespace Image2Card::Language
 {
-class ILanguage;
+  class ILanguage;
 }
 
 namespace Image2Card::Config
 {
-class ConfigManager;
+  class ConfigManager;
 }
 
 namespace Image2Card::UI
 {
 
-class ImageSection : public UIComponent
-{
+  class ImageSection : public UIComponent
+  {
 public:
+
     ImageSection(SDL_Renderer* renderer,
                  std::vector<std::unique_ptr<Language::ILanguage>>* languages,
                  Language::ILanguage** activeLanguage,
@@ -43,6 +46,7 @@ public:
     std::vector<unsigned char> GetFullImageBytes();
 
 private:
+
     void ClearImage();
 
     SDL_Renderer* m_Renderer;
@@ -66,6 +70,6 @@ private:
     std::vector<std::unique_ptr<Language::ILanguage>>* m_Languages;
     Language::ILanguage** m_ActiveLanguage;
     Config::ConfigManager* m_ConfigManager;
-};
+  };
 
 } // namespace Image2Card::UI

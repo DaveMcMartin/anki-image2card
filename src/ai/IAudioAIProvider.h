@@ -1,15 +1,16 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
-#include <nlohmann/json.hpp>
 
 namespace Image2Card::AI
 {
 
-class IAudioAIProvider
-{
+  class IAudioAIProvider
+  {
 public:
+
     virtual ~IAudioAIProvider() = default;
 
     virtual std::string GetName() const = 0;
@@ -27,7 +28,8 @@ public:
     virtual const std::string& GetCurrentVoiceId() const = 0;
     virtual void SetVoiceId(const std::string& voiceId) = 0;
 
-    virtual std::vector<unsigned char> GenerateAudio(const std::string& text, const std::string& voiceId = "", const std::string& languageCode = "") = 0;
-};
+    virtual std::vector<unsigned char>
+    GenerateAudio(const std::string& text, const std::string& voiceId = "", const std::string& languageCode = "") = 0;
+  };
 
 } // namespace Image2Card::AI

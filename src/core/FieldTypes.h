@@ -5,21 +5,21 @@
 
 namespace Image2Card
 {
-namespace Core
-{
+  namespace Core
+  {
     enum class FieldTool
     {
-        SentenceText = 0,
-        SentenceFurigana,
-        SentenceTranslation,
-        VocabWord,
-        VocabFurigana,
-        PitchAccent,
-        VocabDefinition,
-        Image,
-        VocabAudio,
-        SentenceAudio,
-        Count
+      SentenceText = 0,
+      SentenceFurigana,
+      SentenceTranslation,
+      VocabWord,
+      VocabFurigana,
+      PitchAccent,
+      VocabDefinition,
+      Image,
+      VocabAudio,
+      SentenceAudio,
+      Count
     };
 
     constexpr std::array<std::string_view, static_cast<size_t>(FieldTool::Count)> FieldToolNames = {
@@ -32,7 +32,6 @@ namespace Core
         "Vocab Definition",
         "Image",
         "Vocab Audio",
-        "Sentence Audio"
-    };
-}
-}
+        "Sentence Audio"};
+  } // namespace Core
+} // namespace Image2Card

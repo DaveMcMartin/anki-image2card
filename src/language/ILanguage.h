@@ -1,14 +1,15 @@
 #pragma once
 
-#include <string>
 #include <nlohmann/json.hpp>
+#include <string>
 
 namespace Image2Card::Language
 {
 
-class ILanguage
-{
+  class ILanguage
+  {
 public:
+
     virtual ~ILanguage() = default;
 
     virtual std::string GetName() const = 0;
@@ -26,6 +27,6 @@ public:
     virtual std::string GetAnalysisOutputFormat() const = 0;
 
     virtual const void* GetImGuiFontGlyphRanges() const = 0;
-};
+  };
 
 } // namespace Image2Card::Language

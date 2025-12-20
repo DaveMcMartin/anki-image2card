@@ -1,51 +1,52 @@
 #pragma once
 
-#include <string>
-#include <future>
 #include <atomic>
+#include <functional>
+#include <future>
+#include <memory>
 #include <mutex>
 #include <queue>
-#include <memory>
-#include <functional>
+#include <string>
 
 struct SDL_Window;
 struct SDL_Renderer;
 
 namespace Image2Card::UI
 {
-class ImageSection;
-class ConfigurationSection;
-class AnkiCardSettingsSection;
-class StatusSection;
+  class ImageSection;
+  class ConfigurationSection;
+  class AnkiCardSettingsSection;
+  class StatusSection;
 } // namespace Image2Card::UI
 
 namespace Image2Card::API
 {
-class AnkiConnectClient;
+  class AnkiConnectClient;
 }
 
 namespace Image2Card::AI
 {
-class ITextAIProvider;
-class IAudioAIProvider;
-}
+  class ITextAIProvider;
+  class IAudioAIProvider;
+} // namespace Image2Card::AI
 
 namespace Image2Card::Language
 {
-class ILanguage;
+  class ILanguage;
 }
 
 namespace Image2Card::Config
 {
-class ConfigManager;
+  class ConfigManager;
 }
 
 namespace Image2Card
 {
 
-class Application
-{
+  class Application
+  {
 public:
+
     Application(std::string title, int width, int height);
     ~Application();
 
@@ -55,6 +56,7 @@ public:
     void Run();
 
 private:
+
     bool Initialize();
     void Shutdown();
 
@@ -102,11 +104,12 @@ private:
     std::string m_ScanTargetWord;
     std::string m_ScanVoice;
 
-    struct AsyncTask {
-        std::future<void> future;
-        std::string description;
-        std::function<void()> onComplete;
-        std::function<void(const std::string&)> onError;
+    struct AsyncTask
+    {
+      std::future<void> future;
+      std::string description;
+      std::function<void()> onComplete;
+      std::function<void(const std::string&)> onError;
     };
 
     std::queue<AsyncTask> m_ActiveTasks;
@@ -121,6 +124,6 @@ private:
     std::string m_OCRResult;
     bool m_OCRComplete = false;
     std::string m_LastError;
-};
+  };
 
 } // namespace Image2Card

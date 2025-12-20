@@ -1,36 +1,38 @@
 #pragma once
 
-#include "ui/UIComponent.h"
-#include <string>
 #include <functional>
+#include <string>
+
+#include "ui/UIComponent.h"
 
 namespace Image2Card::API
 {
-class AnkiConnectClient;
+  class AnkiConnectClient;
 }
 
 namespace Image2Card::Config
 {
-class ConfigManager;
+  class ConfigManager;
 }
 
 namespace Image2Card::AI
 {
-class ITextAIProvider;
-class IAudioAIProvider;
-}
+  class ITextAIProvider;
+  class IAudioAIProvider;
+} // namespace Image2Card::AI
 
 namespace Image2Card::Language
 {
-class ILanguage;
+  class ILanguage;
 }
 
 namespace Image2Card::UI
 {
 
-class ConfigurationSection : public UIComponent
-{
+  class ConfigurationSection : public UIComponent
+  {
 public:
+
     ConfigurationSection(API::AnkiConnectClient* ankiConnectClient,
                          Config::ConfigManager* configManager,
                          std::vector<std::unique_ptr<AI::ITextAIProvider>>* textAIProviders,
@@ -63,6 +65,6 @@ private:
     Language::ILanguage** m_ActiveLanguage;
 
     std::function<void()> m_OnConnectCallback;
-};
+  };
 
 } // namespace Image2Card::UI

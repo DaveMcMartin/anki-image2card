@@ -6,11 +6,11 @@
 namespace Image2Card::Config
 {
 
-ConfigManager::ConfigManager(std::string configPath)
-    : m_ConfigPath(std::move(configPath))
-{
+  ConfigManager::ConfigManager(std::string configPath)
+      : m_ConfigPath(std::move(configPath))
+  {
     Load();
-}
+  }
 
 void ConfigManager::Load()
 {

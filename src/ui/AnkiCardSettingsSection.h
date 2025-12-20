@@ -1,31 +1,35 @@
 #pragma once
 
-#include "ui/UIComponent.h"
+#include <functional>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include <functional>
+
+#include "ui/UIComponent.h"
 #include "ui/fields/CardField.h"
 
 struct SDL_Renderer;
 
 namespace Image2Card::API
 {
-class AnkiConnectClient;
+  class AnkiConnectClient;
 }
 
 namespace Image2Card::Config
 {
-class ConfigManager;
+  class ConfigManager;
 }
 
 namespace Image2Card::UI
 {
 
-class AnkiCardSettingsSection : public UIComponent
-{
+  class AnkiCardSettingsSection : public UIComponent
+  {
 public:
-    explicit AnkiCardSettingsSection(SDL_Renderer* renderer, API::AnkiConnectClient* ankiConnectClient, Config::ConfigManager* configManager);
+
+    explicit AnkiCardSettingsSection(SDL_Renderer* renderer,
+                                     API::AnkiConnectClient* ankiConnectClient,
+                                     Config::ConfigManager* configManager);
     ~AnkiCardSettingsSection() override;
 
     void Render() override;
@@ -37,6 +41,7 @@ public:
     void SetOnStatusMessageCallback(std::function<void(const std::string&)> callback) { m_OnStatusMessage = callback; }
 
 private:
+
     void RenderDuplicateModal();
     void CheckDuplicatesAndAdd();
     void PerformAdd();
@@ -62,6 +67,6 @@ private:
     std::function<void(const std::string&)> m_OnStatusMessage;
 
     int64_t m_LastCardId = 0;
-};
+  };
 
 } // namespace Image2Card::UI

@@ -1,20 +1,21 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
-#include <nlohmann/json.hpp>
 
 namespace Image2Card::Language
 {
-class ILanguage;
+  class ILanguage;
 }
 
 namespace Image2Card::AI
 {
 
-class ITextAIProvider
-{
+  class ITextAIProvider
+  {
 public:
+
     virtual ~ITextAIProvider() = default;
 
     virtual std::string GetName() const = 0;
@@ -28,12 +29,11 @@ public:
     virtual void LoadRemoteModels() = 0;
 
     virtual std::string ExtractTextFromImage(const std::vector<unsigned char>& imageBuffer,
-                                            const std::string& mimeType,
-                                            Language::ILanguage* language) = 0;
+                                             const std::string& mimeType,
+                                             Language::ILanguage* language) = 0;
 
-    virtual nlohmann::json AnalyzeSentence(const std::string& sentence,
-                                          const std::string& targetWord,
-                                          Language::ILanguage* language) = 0;
-};
+    virtual nlohmann::json
+    AnalyzeSentence(const std::string& sentence, const std::string& targetWord, Language::ILanguage* language) = 0;
+  };
 
 } // namespace Image2Card::AI

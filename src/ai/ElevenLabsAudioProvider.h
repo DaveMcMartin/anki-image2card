@@ -1,21 +1,23 @@
 #pragma once
 
-#include "ai/IAudioAIProvider.h"
 #include <string>
 #include <vector>
+
+#include "ai/IAudioAIProvider.h"
 
 namespace Image2Card::AI
 {
 
-struct ElevenLabsVoice
-{
+  struct ElevenLabsVoice
+  {
     std::string Id;
     std::string Name;
-};
+  };
 
-class ElevenLabsAudioProvider : public IAudioAIProvider
-{
+  class ElevenLabsAudioProvider : public IAudioAIProvider
+  {
 public:
+
     ElevenLabsAudioProvider();
     ~ElevenLabsAudioProvider() override;
 
@@ -31,19 +33,22 @@ public:
 
     bool RenderVoiceSelector(const char* label, std::string* selectedVoiceId) override;
 
-    std::vector<unsigned char> GenerateAudio(const std::string& text, const std::string& voiceId = "", const std::string& languageCode = "") override;
+    std::vector<unsigned char> GenerateAudio(const std::string& text,
+                                             const std::string& voiceId = "",
+                                             const std::string& languageCode = "") override;
 
     const std::vector<ElevenLabsVoice>& GetAvailableVoices() const { return m_AvailableVoices; }
     const std::string& GetCurrentVoiceId() const override { return m_VoiceId; }
     void SetVoiceId(const std::string& voiceId) override { m_VoiceId = voiceId; }
 
 private:
+
     std::string m_ApiKey;
     std::string m_VoiceId;
 
     std::vector<ElevenLabsVoice> m_AvailableVoices;
     bool m_IsLoadingVoices = false;
     std::string m_StatusMessage;
-};
+  };
 
 } // namespace Image2Card::AI

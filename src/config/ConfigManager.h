@@ -1,16 +1,16 @@
 #pragma once
 
-#include <string>
-#include <vector>
 #include <map>
-#include <utility>
 #include <nlohmann/json.hpp>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace Image2Card::Config
 {
 
-struct AppConfig
-{
+  struct AppConfig
+  {
     std::string AnkiConnectUrl = "http://localhost:8765";
     std::vector<std::string> AnkiDecks;
     std::vector<std::string> AnkiNoteTypes;
@@ -36,11 +36,12 @@ struct AppConfig
     std::string LastNoteType;
     std::string LastDeck;
     std::map<std::string, std::map<std::string, std::pair<bool, int>>> FieldMappings;
-};
+  };
 
-class ConfigManager
-{
+  class ConfigManager
+  {
 public:
+
     explicit ConfigManager(std::string configPath = "config.json");
     ~ConfigManager() = default;
 
@@ -50,8 +51,9 @@ public:
     AppConfig& GetConfig();
 
 private:
+
     std::string m_ConfigPath;
     AppConfig m_Config;
-};
+  };
 
 } // namespace Image2Card::Config

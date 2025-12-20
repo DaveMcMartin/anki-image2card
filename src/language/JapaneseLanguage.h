@@ -1,14 +1,16 @@
 #pragma once
 
-#include "language/ILanguage.h"
 #include <imgui.h>
+
+#include "language/ILanguage.h"
 
 namespace Image2Card::Language
 {
 
-class JapaneseLanguage : public ILanguage
-{
+  class JapaneseLanguage : public ILanguage
+  {
 public:
+
     JapaneseLanguage() = default;
     ~JapaneseLanguage() override = default;
 
@@ -19,12 +21,13 @@ public:
 
     std::string GetOCRSystemPrompt() const override
     {
-        return "You are an expert OCR system specialized in Japanese text recognition. You extract text exactly as it appears, preserving accuracy.";
+      return "You are an expert OCR system specialized in Japanese text recognition. You extract text exactly as it "
+             "appears, preserving accuracy.";
     }
 
     std::string GetOCRUserPrompt() const override
     {
-        return R"(Extract ALL Japanese text from this image with high accuracy.
+      return R"(Extract ALL Japanese text from this image with high accuracy.
 
 IMPORTANT INSTRUCTIONS:
 - Japanese text can be written horizontally (left-to-right) OR vertically (top-to-bottom, right-to-left columns)
@@ -42,44 +45,39 @@ If multiple text blocks exist, extract them in reading order.)";
 
     std::string PostProcessOCR(const std::string& text) const override
     {
-        std::string result;
-        result.reserve(text.size());
-        for (char c : text)
-        {
-            if (c != '\n' && c != '\r')
-            {
-                result += c;
-            }
+      std::string result;
+      result.reserve(text.size());
+      for (char c : text) {
+        if (c != '\n' && c != '\r') {
+          result += c;
         }
-        return result;
+      }
+      return result;
     }
 
     std::string GetAnalysisSystemPrompt() const override
     {
-        return "You are a helpful Japanese language learning assistant. You output valid JSON only.";
+      return "You are a helpful Japanese language learning assistant. You output valid JSON only.";
     }
 
     std::string GetAnalysisUserPrompt(const std::string& sentence, const std::string& targetWord) const override
     {
-        std::string prompt = "Analyze the following Japanese sentence:\n\n" + sentence + "\n\n";
+      std::string prompt = "Analyze the following Japanese sentence:\n\n" + sentence + "\n\n";
 
-        if (!targetWord.empty())
-        {
-            prompt += "Focus on the target word: " + targetWord + "\n\n";
-        }
-        else
-        {
-            prompt += "Identify the most important vocabulary word in this sentence as the target word.\n\n";
-        }
+      if (!targetWord.empty()) {
+        prompt += "Focus on the target word: " + targetWord + "\n\n";
+      } else {
+        prompt += "Identify the most important vocabulary word in this sentence as the target word.\n\n";
+      }
 
-        prompt += GetAnalysisOutputFormat();
+      prompt += GetAnalysisOutputFormat();
 
-        return prompt;
+      return prompt;
     }
 
     std::string GetAnalysisOutputFormat() const override
     {
-        return R"(
+      return R"(
 Provide the output in strict JSON format with the following keys:
 - "sentence": The original sentence with the target word highlighted in bold green HTML (e.g., "私 テーブル<b style="color: green;">拭く</b>ね").
 - "translation": English translation of the sentence.
@@ -93,10 +91,7 @@ Do not include markdown formatting (like ```json). Just the raw JSON object.
 )";
     }
 
-    const void* GetImGuiFontGlyphRanges() const override
-    {
-        return ImGui::GetIO().Fonts->GetGlyphRangesJapanese();
-    }
-};
+    const void* GetImGuiFontGlyphRanges() const override { return ImGui::GetIO().Fonts->GetGlyphRangesJapanese(); }
+  };
 
 } // namespace Image2Card::Language

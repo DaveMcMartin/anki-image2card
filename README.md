@@ -79,7 +79,6 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
   - `utils/` - Utility functions
 - `docs/` - Documentation and screenshots
 - `assets/` - Application assets (icons, etc.)
-- `cmake/` - CMake configuration
 
 ## Usage
 
@@ -122,6 +121,21 @@ All dependencies are automatically fetched and built by CMake.
 ## License
 
 This project is licensed under the GNU General Public License v3.0 (GPLv3). See the LICENSE file for details.
+
+## Planned Features
+
+This is a work in progress. Here are some planned features, it is not in priority order:
+
+- [ ] Github Action on release that generates binaries for Windows, macOS, and Linux.
+- [ ] Add local OCR option with Tesseract and make it default
+- [ ] Add dictionary option instead of relying solely on AI and make it default
+- [ ] Add support for multiple images
+- [ ] Add support for Ollama
+- [ ] Give user more control over AI configuration (prompts, etc)
+- [ ] Add custom auto-fill fields for the user
+- [ ] Add local audio generation
+- [ ] Add support for OpenAI
+- [ ] Add support for DeepSeek
 
 ## Contributing
 
