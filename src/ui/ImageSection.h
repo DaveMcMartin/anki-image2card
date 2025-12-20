@@ -26,6 +26,14 @@ namespace Image2Card::Config
 namespace Image2Card::UI
 {
 
+  struct ImageData
+  {
+    SDL_Texture* texture = nullptr;
+    SDL_Surface* surface = nullptr;
+    int width = 0;
+    int height = 0;
+  };
+
   class ImageSection : public UIComponent
   {
 public:
@@ -47,13 +55,14 @@ public:
 
 private:
 
-    void ClearImage();
+    void ClearImages();
+    void RemoveCurrentImage();
+    void ClearSelection();
 
     SDL_Renderer* m_Renderer;
-    SDL_Texture* m_ImageTexture;
-    SDL_Surface* m_ImageSurface;
-    int m_ImageWidth;
-    int m_ImageHeight;
+
+    std::vector<ImageData> m_Images;
+    size_t m_CurrentImageIndex = 0;
 
     // Cropping State
     bool m_IsSelecting = false;

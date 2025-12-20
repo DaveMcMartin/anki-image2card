@@ -4,7 +4,7 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 
 ## Features
 
-- **Modern C++23**: Built with cutting-edge C++ standards for performance and type safety.
+- **Modern C++23**: Built with C++ standards for performance and type safety.
 - **Cross-Platform**: Runs on macOS, Windows, and Linux.
 - **Beautiful UI**: Built with SDL3 and Dear ImGui for a responsive and intuitive interface.
 - **Image Processing**: Drag and drop images, crop sections for analysis.
@@ -23,6 +23,8 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 ![Screenshot 3](docs/screenshot-3.png)
 
 ![Screenshot 4](docs/screenshot-4.png)
+
+![Screenshot 5](docs/screenshot-5.png)
 
 ## Prerequisites
 
@@ -128,7 +130,7 @@ This is a work in progress. Here are some planned features, it is not in priorit
 
 - [ ] Github Action on release that generates binaries for Windows, macOS, and Linux.
 - [ ] Add local OCR option with Tesseract and make it default
-- [ ] Add support for multiple images
+- [x] Add support for multiple images
 - [ ] Add support for Ollama
 - [ ] Give user more control over AI configuration (prompts, etc)
 - [ ] Add custom auto-fill fields for the user
