@@ -128,7 +128,6 @@ This is a work in progress. Here are some planned features, it is not in priorit
 
 - [ ] Github Action on release that generates binaries for Windows, macOS, and Linux.
 - [ ] Add local OCR option with Tesseract and make it default
-- [ ] Add dictionary option instead of relying solely on AI and make it default
 - [ ] Add support for multiple images
 - [ ] Add support for Ollama
 - [ ] Give user more control over AI configuration (prompts, etc)
