@@ -23,10 +23,6 @@ namespace Image2Card::UI
                              Language::ILanguage** activeLanguage,
                              Config::ConfigManager* configManager)
       : m_Renderer(renderer)
-      , m_ImageTexture(nullptr)
-      , m_ImageSurface(nullptr)
-      , m_ImageWidth(0)
-      , m_ImageHeight(0)
       , m_Languages(languages)
       , m_ActiveLanguage(activeLanguage)
       , m_ConfigManager(configManager)
@@ -34,29 +30,56 @@ namespace Image2Card::UI
 
   ImageSection::~ImageSection()
   {
-    ClearImage();
+    ClearImages();
   }
 
-  void ImageSection::ClearImage()
+  void ImageSection::ClearImages()
   {
-    if (m_ImageTexture) {
-      SDL_DestroyTexture(m_ImageTexture);
-      m_ImageTexture = nullptr;
+    for (auto& img : m_Images) {
+      if (img.texture) {
+        SDL_DestroyTexture(img.texture);
+      }
+      if (img.surface) {
+        SDL_DestroySurface(img.surface);
+      }
     }
-    if (m_ImageSurface) {
-      SDL_DestroySurface(m_ImageSurface);
-      m_ImageSurface = nullptr;
+    m_Images.clear();
+    m_CurrentImageIndex = 0;
+    ClearSelection();
+  }
+
+  void ImageSection::RemoveCurrentImage()
+  {
+    if (m_Images.empty())
+      return;
+
+    auto& img = m_Images[m_CurrentImageIndex];
+    if (img.texture)
+      SDL_DestroyTexture(img.texture);
+    if (img.surface)
+      SDL_DestroySurface(img.surface);
+
+    m_Images.erase(m_Images.begin() + m_CurrentImageIndex);
+
+    if (m_Images.empty()) {
+      m_CurrentImageIndex = 0;
+    } else {
+      if (m_CurrentImageIndex >= m_Images.size()) {
+        m_CurrentImageIndex = m_Images.size() - 1;
+      }
     }
-    m_ImageWidth = 0;
-    m_ImageHeight = 0;
+    ClearSelection();
+  }
+
+  void ImageSection::ClearSelection()
+  {
+    m_IsSelecting = false;
     m_SelectionStart = {0.0f, 0.0f};
     m_SelectionEnd = {0.0f, 0.0f};
   }
 
   void ImageSection::LoadImageFromFile(const std::string& path)
   {
-    ClearImage();
-
     int width{}, height{}, channels{};
     unsigned char* data = stbi_load(path.c_str(), &width, &height, &channels, 4);
     if (!data) {
@@ -71,20 +94,33 @@ namespace Image2Card::UI
       return;
     }
 
-    m_ImageSurface = SDL_DuplicateSurface(tempSurface.get());
+    SDL_Surface* surface = SDL_DuplicateSurface(tempSurface.get());
     stbi_image_free(data);
 
-    if (!m_ImageSurface) {
+    if (!surface) {
       AF_ERROR("Failed to duplicate surface: {}", SDL_GetError());
       return;
     }
 
-    m_ImageTexture = SDL_CreateTextureFromSurface(m_Renderer, m_ImageSurface);
-    if (!m_ImageTexture) {
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(m_Renderer, surface);
+    if (!texture) {
       AF_ERROR("Failed to create texture: {}", SDL_GetError());
+      SDL_DestroySurface(surface);
     } else {
-      m_ImageWidth = width;
-      m_ImageHeight = height;
+      ImageData newImage;
+      newImage.surface = surface;
+      newImage.texture = texture;
+      newImage.width = width;
+      newImage.height = height;
+
+      m_Images.push_back(newImage);
+
+      // If this is the first image, ensure index is 0
+      if (m_Images.size() == 1) {
+        m_CurrentImageIndex = 0;
+      }
+
+      ClearSelection();
     }
   }
 
@@ -127,8 +163,13 @@ namespace Image2Card::UI
 
     float startY = ImGui::GetCursorPosY();
 
-    if (m_ImageTexture) {
-      float aspect = (float) m_ImageWidth / (float) m_ImageHeight;
+    ImageData* currentImage = nullptr;
+    if (!m_Images.empty() && m_CurrentImageIndex < m_Images.size()) {
+      currentImage = &m_Images[m_CurrentImageIndex];
+    }
+
+    if (currentImage && currentImage->texture) {
+      float aspect = (float) currentImage->width / (float) currentImage->height;
       float viewAspect = availSize.x / availSize.y;
 
       ImVec2 imageSize = availSize;
@@ -144,7 +185,7 @@ namespace Image2Card::UI
       ImGui::SetCursorPosX(cursorX);
       ImGui::SetCursorPosY(cursorY);
 
-      ImGui::Image((ImTextureID) m_ImageTexture, imageSize);
+      ImGui::Image((ImTextureID) currentImage->texture, imageSize);
 
       m_ImageScreenPos = ImVec2(cursorX, cursorY);
       m_ImageScreenSize = imageSize;
@@ -201,7 +242,7 @@ namespace Image2Card::UI
     ImGui::Spacing();
 
     if (ImGui::Button(ICON_FA_TRASH " Clear", ImVec2(100, 0))) {
-      ClearImage();
+      ClearImages();
     }
 
     ImGui::SameLine();
@@ -218,6 +259,52 @@ namespace Image2Card::UI
     }
     ImGui::PopStyleColor(3);
 
+    if (m_Images.size() > 1) {
+      std::string countText = std::to_string(m_CurrentImageIndex + 1) + "/" + std::to_string(m_Images.size());
+
+      float textWidth = ImGui::CalcTextSize(countText.c_str()).x;
+      float buttonWidth = 30.0f;
+      float spacing = ImGui::GetStyle().ItemSpacing.x;
+      float groupWidth = textWidth + spacing + (buttonWidth * 3) + (spacing * 3);
+
+      ImGui::SameLine();
+
+      float availX = ImGui::GetContentRegionAvail().x;
+      float cursorX = ImGui::GetCursorPosX();
+
+      if (availX > groupWidth) {
+        ImGui::SetCursorPosX(cursorX + availX - groupWidth);
+      }
+
+      ImGui::AlignTextToFramePadding();
+      ImGui::Text("%s", countText.c_str());
+      ImGui::SameLine();
+
+      if (ImGui::Button(ICON_FA_XMARK, ImVec2(buttonWidth, 0))) {
+        RemoveCurrentImage();
+      }
+      ImGui::SameLine();
+
+      if (ImGui::Button(ICON_FA_ARROW_LEFT, ImVec2(buttonWidth, 0))) {
+        if (m_CurrentImageIndex > 0) {
+          m_CurrentImageIndex--;
+        } else {
+          m_CurrentImageIndex = m_Images.size() - 1;
+        }
+        ClearSelection();
+      }
+      ImGui::SameLine();
+
+      if (ImGui::Button(ICON_FA_ARROW_RIGHT, ImVec2(buttonWidth, 0))) {
+        if (m_CurrentImageIndex < m_Images.size() - 1) {
+          m_CurrentImageIndex++;
+        } else {
+          m_CurrentImageIndex = 0;
+        }
+        ClearSelection();
+      }
+    }
+
     ImGui::End();
   }
 
@@ -230,7 +317,11 @@ namespace Image2Card::UI
 
   std::vector<unsigned char> ImageSection::GetSelectedImageBytes()
   {
-    if (!m_ImageSurface)
+    if (m_Images.empty() || m_CurrentImageIndex >= m_Images.size())
+      return {};
+
+    ImageData& currentImg = m_Images[m_CurrentImageIndex];
+    if (!currentImg.surface)
       return {};
 
     float x1 = std::min(m_SelectionStart.x, m_SelectionEnd.x);
@@ -250,8 +341,8 @@ namespace Image2Card::UI
     float relX2 = x2 - m_ImageScreenPos.x;
     float relY2 = y2 - m_ImageScreenPos.y;
 
-    float scaleX = (float) m_ImageWidth / m_ImageScreenSize.x;
-    float scaleY = (float) m_ImageHeight / m_ImageScreenSize.y;
+    float scaleX = (float) currentImg.width / m_ImageScreenSize.x;
+    float scaleY = (float) currentImg.height / m_ImageScreenSize.y;
 
     SDL_Rect cropRect;
     cropRect.x = (int) (relX1 * scaleX);
@@ -263,19 +354,19 @@ namespace Image2Card::UI
       cropRect.x = 0;
     if (cropRect.y < 0)
       cropRect.y = 0;
-    if (cropRect.x + cropRect.w > m_ImageWidth)
-      cropRect.w = m_ImageWidth - cropRect.x;
-    if (cropRect.y + cropRect.h > m_ImageHeight)
-      cropRect.h = m_ImageHeight - cropRect.y;
+    if (cropRect.x + cropRect.w > currentImg.width)
+      cropRect.w = currentImg.width - cropRect.x;
+    if (cropRect.y + cropRect.h > currentImg.height)
+      cropRect.h = currentImg.height - cropRect.y;
 
     if (cropRect.w <= 0 || cropRect.h <= 0)
       return {};
 
-    auto croppedSurface = SDL::MakeSurface(cropRect.w, cropRect.h, m_ImageSurface->format);
+    auto croppedSurface = SDL::MakeSurface(cropRect.w, cropRect.h, currentImg.surface->format);
     if (!croppedSurface)
       return {};
 
-    if (!SDL_BlitSurface(m_ImageSurface, &cropRect, croppedSurface.get(), nullptr)) {
+    if (!SDL_BlitSurface(currentImg.surface, &cropRect, croppedSurface.get(), nullptr)) {
       return {};
     }
 
@@ -290,14 +381,23 @@ namespace Image2Card::UI
 
   std::vector<unsigned char> ImageSection::GetFullImageBytes()
   {
-    if (!m_ImageSurface)
+    if (m_Images.empty() || m_CurrentImageIndex >= m_Images.size())
+      return {};
+
+    ImageData& currentImg = m_Images[m_CurrentImageIndex];
+    if (!currentImg.surface)
       return {};
 
     std::vector<unsigned char> buffer;
 
     // We loaded the image as RGBA (4 channels)
-    stbi_write_png_to_func(
-        StbiWriteFunc, &buffer, m_ImageSurface->w, m_ImageSurface->h, 4, m_ImageSurface->pixels, m_ImageSurface->pitch);
+    stbi_write_png_to_func(StbiWriteFunc,
+                           &buffer,
+                           currentImg.surface->w,
+                           currentImg.surface->h,
+                           4,
+                           currentImg.surface->pixels,
+                           currentImg.surface->pitch);
 
     return buffer;
   }
