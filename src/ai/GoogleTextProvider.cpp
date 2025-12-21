@@ -48,11 +48,26 @@ namespace Image2Card::AI
       ImGui::Text("%s", m_StatusMessage.c_str());
     }
 
-    if (ImGui::BeginCombo("Model", m_Model.c_str())) {
-      for (const auto& model : m_AvailableModels) {
-        bool is_selected = (m_Model == model);
+    std::vector<std::string> displayModels = m_AvailableModels;
+
+    if (ImGui::BeginCombo("Vision Model", m_VisionModel.c_str())) {
+      for (const auto& model : displayModels) {
+        bool is_selected = (m_VisionModel == model);
         if (ImGui::Selectable(model.c_str(), is_selected)) {
-          m_Model = model;
+          m_VisionModel = model;
+          changed = true;
+        }
+        if (is_selected)
+          ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+
+    if (ImGui::BeginCombo("Sentence Model", m_SentenceModel.c_str())) {
+      for (const auto& model : displayModels) {
+        bool is_selected = (m_SentenceModel == model);
+        if (ImGui::Selectable(model.c_str(), is_selected)) {
+          m_SentenceModel = model;
           changed = true;
         }
         if (is_selected)
@@ -68,15 +83,20 @@ namespace Image2Card::AI
   {
     if (json.contains("api_key"))
       m_ApiKey = json["api_key"];
-    if (json.contains("model"))
-      m_Model = json["model"];
+    if (json.contains("vision_model"))
+      m_VisionModel = json["vision_model"];
+    if (json.contains("sentence_model"))
+      m_SentenceModel = json["sentence_model"];
     if (json.contains("available_models"))
       m_AvailableModels = json["available_models"].get<std::vector<std::string>>();
   }
 
   nlohmann::json GoogleTextProvider::SaveConfig() const
   {
-    return {{"api_key", m_ApiKey}, {"model", m_Model}, {"available_models", m_AvailableModels}};
+    return {{"api_key", m_ApiKey},
+            {"vision_model", m_VisionModel},
+            {"sentence_model", m_SentenceModel},
+            {"available_models", m_AvailableModels}};
   }
 
   void GoogleTextProvider::LoadRemoteModels()
@@ -203,7 +223,7 @@ namespace Image2Card::AI
     }
 #endif
 
-    std::string endpoint = "/v1beta/models/" + m_Model + ":generateContent";
+    std::string endpoint = "/v1beta/models/" + m_VisionModel + ":generateContent";
     auto response = SendRequest(endpoint, payload);
 
     if (!response.is_null() && response.contains("candidates") && !response["candidates"].empty()) {
@@ -272,7 +292,7 @@ namespace Image2Card::AI
     AF_DEBUG("Sending Google Analysis Request: {}", payload.dump(2));
 #endif
 
-    std::string endpoint = "/v1beta/models/" + m_Model + ":generateContent";
+    std::string endpoint = "/v1beta/models/" + m_SentenceModel + ":generateContent";
     auto response = SendRequest(endpoint, payload);
 
     if (!response.is_null() && response.contains("candidates") && !response["candidates"].empty()) {

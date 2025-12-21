@@ -11,6 +11,7 @@
 #include "config/ConfigManager.h"
 #include "core/Logger.h"
 #include "utils/Base64Utils.h"
+#include "utils/ImageProcessor.h"
 
 namespace Image2Card::UI
 {
@@ -387,7 +388,28 @@ namespace Image2Card::UI
         auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
         std::string uniqueFilename = std::to_string(timestamp) + "_" + fieldValue;
 
-        std::string base64Data = Image2Card::Utils::Base64Utils::Encode(binaryData);
+        // Process binary data based on field type
+        std::vector<unsigned char> processedData = binaryData;
+        
+        if (field->GetType() == CardFieldType::Image) {
+          // Compress image to WebP format, scaling to fit 320x320
+          AF_INFO("Compressing image to WebP format (max 320x320)...");
+          processedData = Utils::ImageProcessor::ScaleAndCompressToWebP(binaryData, 320, 320, 75);
+          if (processedData.empty()) {
+            AF_WARN("Failed to compress image, using original");
+            processedData = binaryData;
+          }
+          // Update filename extension for WebP
+          size_t dotPos = uniqueFilename.find_last_of(".");
+          if (dotPos != std::string::npos) {
+            uniqueFilename = uniqueFilename.substr(0, dotPos) + ".webp";
+          } else {
+            uniqueFilename += ".webp";
+          }
+          AF_INFO("Image compressed: {} bytes -> {} bytes", binaryData.size(), processedData.size());
+        }
+
+        std::string base64Data = Image2Card::Utils::Base64Utils::Encode(processedData);
 
         if (m_AnkiConnectClient->StoreMediaFile(uniqueFilename, base64Data)) {
           if (field->GetType() == CardFieldType::Image) {

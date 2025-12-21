@@ -17,15 +17,13 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 
 ## Screenshots
 
-![Screenshot 1](docs/screenshot-1.png)
+![Screenshot 1](docs/screenshot-1.jpeg)
 
-![Screenshot 2](docs/screenshot-2.png)
+![Screenshot 2](docs/screenshot-2.jpeg)
 
-![Screenshot 3](docs/screenshot-3.png)
+![Screenshot 3](docs/screenshot-3.jpeg)
 
-![Screenshot 4](docs/screenshot-4.png)
-
-![Screenshot 5](docs/screenshot-5.png)
+![Screenshot 4](docs/screenshot-4.jpeg)
 
 ## Prerequisites
 
@@ -109,6 +107,7 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
    - Select the area you want to scan.
    - If using Tesseract, select the text orientation (horizontal or vertical) using the buttons in the Image Section.
    - Click "Scan" to process the image with your configured OCR method.
+   - Review the generated fields in the modal before proceeding.
    - Review the generated fields in the "Anki Card Settings" section.
    - Click "Add" to create the card in Anki.
 
@@ -124,7 +123,7 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
    The "Japanese Sentence" note type from the Ankidrone Foundation deck.
 
 4. **Can I use other AI/TTS providers?**
-   Yes! The architecture is designed to be extensible. You can add new providers by implementing the appropriate interfaces in the `ai/` modules. Feel free to open a pull request if you have implemented a new provider.
+   The architecture is designed to be extensible. You can add new providers by implementing the appropriate interfaces in the `ai/` modules. Feel free to open a pull request if you have implemented a new provider.
 
 ## Dependencies
 
@@ -154,6 +153,7 @@ This is a work in progress. Here are some planned features, it is not in priorit
 - [ ] Add local audio generation
 - [ ] Add support for OpenAI
 - [ ] Add support for DeepSeek
+- [ ] Switch from Tesseract to PaddleOCR
 
 ## Contributing
 

@@ -20,6 +20,7 @@
 #include "language/JapaneseLanguage.h"
 #include "ocr/TesseractOCRProvider.h"
 #include "stb_image.h"
+#include "utils/ImageProcessor.h"
 #include "ui/AnkiCardSettingsSection.h"
 #include "ui/ConfigurationSection.h"
 #include "ui/ImageSection.h"
@@ -229,7 +230,8 @@ namespace Image2Card
         providerConfig["available_models"] = m_ConfigManager->GetConfig().TextAvailableModels;
       } else if (provider->GetId() == "google") {
         providerConfig["api_key"] = m_ConfigManager->GetConfig().GoogleApiKey;
-        providerConfig["model"] = m_ConfigManager->GetConfig().GoogleModel;
+        providerConfig["vision_model"] = m_ConfigManager->GetConfig().GoogleVisionModel;
+        providerConfig["sentence_model"] = m_ConfigManager->GetConfig().GoogleSentenceModel;
         providerConfig["available_models"] = m_ConfigManager->GetConfig().GoogleAvailableModels;
       }
       provider->LoadConfig(providerConfig);
@@ -250,6 +252,7 @@ namespace Image2Card
       nlohmann::json audioConfig;
       audioConfig["api_key"] = m_ConfigManager->GetConfig().AudioApiKey;
       audioConfig["voice_id"] = m_ConfigManager->GetConfig().AudioVoiceId;
+      audioConfig["audio_format"] = m_ConfigManager->GetConfig().AudioFormat;
 
       nlohmann::json voicesJson = nlohmann::json::array();
       for (const auto& voice : m_ConfigManager->GetConfig().AudioAvailableVoices) {
@@ -341,7 +344,10 @@ namespace Image2Card
       m_Window = nullptr;
     }
 
-    SDL_Quit();
+    // Note: SDL_Quit() is intentionally skipped to avoid double-free crashes.
+    // SDL 3.0 will clean up resources automatically when the process exits.
+    // Calling SDL_Quit() after we've already destroyed textures and surfaces
+    // causes malloc errors due to double-free attempts.
   }
 
   void Application::HandleEvents()
@@ -858,13 +864,15 @@ namespace Image2Card
           if (m_StatusSection)
             m_StatusSection->SetStatus("Generating Vocab Audio...");
 
+          std::string audioFormat = m_ConfigManager->GetConfig().AudioFormat;
           std::vector<unsigned char> vocabAudio =
-              m_AudioAIProvider->GenerateAudio(analyzedTargetWord, voice, languageCode);
+              m_AudioAIProvider->GenerateAudio(analyzedTargetWord, voice, languageCode, audioFormat);
           AF_INFO("Vocab Audio generated, size: {} bytes", vocabAudio.size());
 
           if (m_AnkiCardSettingsSection && !vocabAudio.empty()) {
             // 8: Vocab Audio
-            m_AnkiCardSettingsSection->SetFieldByTool(8, vocabAudio, "vocab.mp3");
+            std::string audioExt = (audioFormat == "opus") ? "opus" : "mp3";
+            m_AnkiCardSettingsSection->SetFieldByTool(8, vocabAudio, "vocab." + audioExt);
           }
         }
 
@@ -875,13 +883,15 @@ namespace Image2Card
           if (m_StatusSection)
             m_StatusSection->SetStatus("Generating Sentence Audio...");
 
+          std::string audioFormat = m_ConfigManager->GetConfig().AudioFormat;
           std::vector<unsigned char> sentenceAudio =
-              m_AudioAIProvider->GenerateAudio(analyzedSentence, voice, languageCode);
+              m_AudioAIProvider->GenerateAudio(analyzedSentence, voice, languageCode, audioFormat);
           AF_INFO("Sentence Audio generated, size: {} bytes", sentenceAudio.size());
 
           if (m_AnkiCardSettingsSection && !sentenceAudio.empty()) {
             // 9: Sentence Audio
-            m_AnkiCardSettingsSection->SetFieldByTool(9, sentenceAudio, "sentence.mp3");
+            std::string audioExt = (audioFormat == "opus") ? "opus" : "mp3";
+            m_AnkiCardSettingsSection->SetFieldByTool(9, sentenceAudio, "sentence." + audioExt);
           }
         }
 

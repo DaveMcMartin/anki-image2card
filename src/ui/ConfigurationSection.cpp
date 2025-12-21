@@ -152,8 +152,10 @@ namespace Image2Card::UI
         } else if (providerId == "google") {
           if (j.contains("api_key"))
             config.GoogleApiKey = j["api_key"];
-          if (j.contains("model"))
-            config.GoogleModel = j["model"];
+          if (j.contains("vision_model"))
+            config.GoogleVisionModel = j["vision_model"];
+          if (j.contains("sentence_model"))
+            config.GoogleSentenceModel = j["sentence_model"];
           if (j.contains("available_models"))
             config.GoogleAvailableModels = j["available_models"].get<std::vector<std::string>>();
         }
@@ -184,6 +186,8 @@ namespace Image2Card::UI
             config.AudioApiKey = j["api_key"];
           if (j.contains("voice_id"))
             config.AudioVoiceId = j["voice_id"];
+          if (j.contains("audio_format"))
+            config.AudioFormat = j["audio_format"];
 
           if (j.contains("available_voices")) {
             config.AudioAvailableVoices.clear();
@@ -247,6 +251,10 @@ namespace Image2Card::UI
     if (isTesseract) {
       ImGui::Text("Tesseract is enabled.");
       ImGui::TextWrapped("Note: Text orientation can be set using the buttons in the Image section.");
+      
+      ImGui::Spacing();
+      ImGui::Separator();
+      ImGui::Spacing();
     } else {
       ImGui::Text("AI OCR is enabled.");
       ImGui::TextWrapped("The selected Text AI provider will be used for OCR.");

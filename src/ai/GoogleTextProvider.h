@@ -37,7 +37,8 @@ private:
     nlohmann::json SendRequest(const std::string& endpoint, const nlohmann::json& payload);
 
     std::string m_ApiKey;
-    std::string m_Model = "gemini-2.0-flash";
+    std::string m_VisionModel = "gemini-2.0-flash";
+    std::string m_SentenceModel = "gemini-2.0-flash";
 
     std::vector<std::string> m_AvailableModels;
     bool m_IsLoadingModels = false;

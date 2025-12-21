@@ -35,16 +35,21 @@ public:
 
     std::vector<unsigned char> GenerateAudio(const std::string& text,
                                              const std::string& voiceId = "",
-                                             const std::string& languageCode = "") override;
+                                             const std::string& languageCode = "",
+                                             const std::string& format = "mp3") override;
 
     const std::vector<ElevenLabsVoice>& GetAvailableVoices() const { return m_AvailableVoices; }
     const std::string& GetCurrentVoiceId() const override { return m_VoiceId; }
     void SetVoiceId(const std::string& voiceId) override { m_VoiceId = voiceId; }
 
+    const std::string& GetAudioFormat() const { return m_AudioFormat; }
+    void SetAudioFormat(const std::string& format) { m_AudioFormat = format; }
+
 private:
 
     std::string m_ApiKey;
     std::string m_VoiceId;
+    std::string m_AudioFormat = "mp3"; // "mp3" or "opus"
 
     std::vector<ElevenLabsVoice> m_AvailableVoices;
     bool m_IsLoadingVoices = false;
