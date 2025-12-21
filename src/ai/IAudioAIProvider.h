@@ -29,7 +29,7 @@ public:
     virtual void SetVoiceId(const std::string& voiceId) = 0;
 
     virtual std::vector<unsigned char>
-    GenerateAudio(const std::string& text, const std::string& voiceId = "", const std::string& languageCode = "") = 0;
+    GenerateAudio(const std::string& text, const std::string& voiceId = "", const std::string& languageCode = "", const std::string& format = "mp3") = 0;
   };
 
 } // namespace Image2Card::AI

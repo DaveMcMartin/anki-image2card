@@ -3,25 +3,24 @@
 #include <allheaders.h>
 #include <tesseract/baseapi.h>
 
+#include <cstring>
+
 #include "core/Logger.h"
 
 namespace Image2Card::OCR
 {
 
   TesseractOCRProvider::TesseractOCRProvider()
-      : m_TessAPI(nullptr)
+      : m_TessAPI(std::make_unique<tesseract::TessBaseAPI>())
       , m_IsInitialized(false)
       , m_Orientation(TesseractOrientation::Horizontal)
   {
-    m_TessAPI = new tesseract::TessBaseAPI();
   }
 
   TesseractOCRProvider::~TesseractOCRProvider()
   {
     if (m_TessAPI) {
       m_TessAPI->End();
-      delete m_TessAPI;
-      m_TessAPI = nullptr;
     }
   }
 
@@ -41,6 +40,7 @@ namespace Image2Card::OCR
 
     m_IsInitialized = true;
     AF_INFO("Tesseract initialized successfully with language: {}", language);
+    
     return true;
   }
 
@@ -68,6 +68,9 @@ namespace Image2Card::OCR
       return "";
     }
 
+    // Clear previous recognition state to ensure clean OCR
+    m_TessAPI->Clear();
+
     // Set the image for OCR
     m_TessAPI->SetImage(image);
 
@@ -92,7 +95,9 @@ namespace Image2Card::OCR
     }
 
     // Clean up
-    pixDestroy(&image);
+    if (image) {
+      pixDestroy(&image);
+    }
 
     AF_INFO("Tesseract OCR extracted {} characters", result.length());
     return result;

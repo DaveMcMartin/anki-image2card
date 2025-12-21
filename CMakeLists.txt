@@ -46,10 +46,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cpp-httplib)
 
-# Find Tesseract OCR
+# Find Tesseract OCR and WebP
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(TESSERACT REQUIRED tesseract)
 pkg_check_modules(LEPTONICA REQUIRED lept)
+pkg_check_modules(WEBP REQUIRED libwebp)
 
 add_library(imgui_sdl3 STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
@@ -91,6 +92,7 @@ target_include_directories(AnkiImage2Card PRIVATE
     ${CMAKE_SOURCE_DIR}/assets
     ${TESSERACT_INCLUDE_DIRS}
     ${LEPTONICA_INCLUDE_DIRS}
+    ${WEBP_INCLUDE_DIRS}
 )
 
 target_link_libraries(AnkiImage2Card PRIVATE
@@ -98,11 +100,13 @@ target_link_libraries(AnkiImage2Card PRIVATE
     SDL3::SDL3
     nlohmann_json::nlohmann_json
     httplib::httplib
+    ${WEBP_LIBRARIES}
 )
 
 target_link_directories(AnkiImage2Card PRIVATE
     ${TESSERACT_LIBRARY_DIRS}
     ${LEPTONICA_LIBRARY_DIRS}
+    ${WEBP_LIBRARY_DIRS}
 )
 
 target_link_libraries(AnkiImage2Card PRIVATE

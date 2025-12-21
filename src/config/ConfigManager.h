@@ -24,7 +24,8 @@ namespace Image2Card::Config
     std::vector<std::string> TextAvailableModels;
 
     std::string GoogleApiKey;
-    std::string GoogleModel = "gemini-2.0-flash";
+    std::string GoogleVisionModel = "gemini-2.0-flash";
+    std::string GoogleSentenceModel = "gemini-2.0-flash";
     std::vector<std::string> GoogleAvailableModels;
 
     std::string AudioProvider = "ElevenLabs";
@@ -35,6 +36,9 @@ namespace Image2Card::Config
     // OCR Configuration
     std::string OCRMethod = "Tesseract"; // "AI" or "Tesseract"
     std::string TesseractOrientation = "horizontal"; // "horizontal" or "vertical"
+
+    // Audio Configuration
+    std::string AudioFormat = "mp3"; // "mp3" or "opus"
 
     // UI State
     std::string LastNoteType;

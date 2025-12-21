@@ -38,7 +38,9 @@ void ConfigManager::Load()
         if (j.contains("text_available_models")) m_Config.TextAvailableModels = j["text_available_models"].get<std::vector<std::string>>();
 
         if (j.contains("google_api_key")) m_Config.GoogleApiKey = j["google_api_key"];
-        if (j.contains("google_model")) m_Config.GoogleModel = j["google_model"];
+        if (j.contains("google_vision_model")) m_Config.GoogleVisionModel = j["google_vision_model"];
+        if (j.contains("google_sentence_model")) m_Config.GoogleSentenceModel = j["google_sentence_model"];
+        if (j.contains("google_model")) m_Config.GoogleVisionModel = j["google_model"]; // Fallback for old config
         if (j.contains("google_available_models")) m_Config.GoogleAvailableModels = j["google_available_models"].get<std::vector<std::string>>();
 
         if (j.contains("audio_provider")) m_Config.AudioProvider = j["audio_provider"];
@@ -58,6 +60,8 @@ void ConfigManager::Load()
 
         if (j.contains("ocr_method")) m_Config.OCRMethod = j["ocr_method"];
         if (j.contains("tesseract_orientation")) m_Config.TesseractOrientation = j["tesseract_orientation"];
+
+        if (j.contains("audio_format")) m_Config.AudioFormat = j["audio_format"];
 
         if (j.contains("last_note_type")) m_Config.LastNoteType = j["last_note_type"];
         if (j.contains("last_deck")) m_Config.LastDeck = j["last_deck"];
@@ -100,7 +104,8 @@ void ConfigManager::Save()
     j["text_available_models"] = m_Config.TextAvailableModels;
 
     j["google_api_key"] = m_Config.GoogleApiKey;
-    j["google_model"] = m_Config.GoogleModel;
+    j["google_vision_model"] = m_Config.GoogleVisionModel;
+    j["google_sentence_model"] = m_Config.GoogleSentenceModel;
     j["google_available_models"] = m_Config.GoogleAvailableModels;
 
     j["audio_provider"] = m_Config.AudioProvider;
@@ -116,6 +121,8 @@ void ConfigManager::Save()
 
     j["ocr_method"] = m_Config.OCRMethod;
     j["tesseract_orientation"] = m_Config.TesseractOrientation;
+
+    j["audio_format"] = m_Config.AudioFormat;
 
     j["last_note_type"] = m_Config.LastNoteType;
     j["last_deck"] = m_Config.LastDeck;

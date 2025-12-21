@@ -43,6 +43,24 @@ namespace Image2Card::AI
       changed = true;
     }
 
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    ImGui::Text("Audio Format:");
+    static const char* formats[] = {"MP3", "Opus"};
+    static const char* formatValues[] = {"mp3", "opus"};
+    
+    int currentFormatIdx = 0;
+    if (m_AudioFormat == "opus") {
+      currentFormatIdx = 1;
+    }
+
+    if (ImGui::Combo("##audio_format", &currentFormatIdx, formats, IM_ARRAYSIZE(formats))) {
+      m_AudioFormat = formatValues[currentFormatIdx];
+      changed = true;
+    }
+
     return changed;
   }
 
@@ -85,6 +103,8 @@ namespace Image2Card::AI
       m_ApiKey = json["api_key"];
     if (json.contains("voice_id"))
       m_VoiceId = json["voice_id"];
+    if (json.contains("audio_format"))
+      m_AudioFormat = json["audio_format"];
     if (json.contains("available_voices")) {
       m_AvailableVoices.clear();
       for (const auto& item : json["available_voices"]) {
@@ -102,7 +122,7 @@ namespace Image2Card::AI
       voicesJson.push_back({voice.Id, voice.Name});
     }
 
-    return {{"api_key", m_ApiKey}, {"voice_id", m_VoiceId}, {"available_voices", voicesJson}};
+    return {{"api_key", m_ApiKey}, {"voice_id", m_VoiceId}, {"audio_format", m_AudioFormat}, {"available_voices", voicesJson}};
   }
 
   void ElevenLabsAudioProvider::LoadRemoteVoices()
@@ -152,9 +172,11 @@ namespace Image2Card::AI
 
   std::vector<unsigned char> ElevenLabsAudioProvider::GenerateAudio(const std::string& text,
                                                                     const std::string& voiceId,
-                                                                    const std::string& languageCode)
+                                                                    const std::string& languageCode,
+                                                                    const std::string& format)
   {
     std::string targetVoiceId = voiceId.empty() ? m_VoiceId : voiceId;
+    std::string audioFormat = format.empty() ? m_AudioFormat : format;
 
     if (m_ApiKey.empty() || targetVoiceId.empty()) {
       AF_ERROR("ElevenLabsAudioProvider Error: API Key or Voice ID is missing.");
@@ -166,7 +188,9 @@ namespace Image2Card::AI
       cli.set_connection_timeout(120);
       cli.set_read_timeout(120);
 
-      httplib::Headers headers = {{"xi-api-key", m_ApiKey}, {"Accept", "audio/mpeg"}};
+      // Set correct Accept header based on format
+      std::string acceptHeader = (audioFormat == "opus") ? "audio/opus" : "audio/mpeg";
+      httplib::Headers headers = {{"xi-api-key", m_ApiKey}, {"Accept", acceptHeader}};
 
       nlohmann::json payload = {{"text", text},
                                 {"model_id", "eleven_v3"},
@@ -177,11 +201,17 @@ namespace Image2Card::AI
         payload["language_code"] = languageCode;
       }
 
+      // Add output format if not default MP3
+      if (audioFormat == "opus") {
+        payload["output_format"] = "opus_64";
+      }
+
       std::string endpoint = "/v1/text-to-speech/" + targetVoiceId;
 
       auto res = cli.Post(endpoint, headers, payload.dump(), "application/json");
 
       if (res && res->status == 200) {
+        AF_INFO("Generated audio in {} format, size: {} bytes", audioFormat, res->body.size());
         return std::vector<unsigned char>(res->body.begin(), res->body.end());
       } else {
         AF_ERROR("ElevenLabsAudioProvider HTTP Error: {}", (res ? res->status : 0));
