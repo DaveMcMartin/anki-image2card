@@ -11,6 +11,11 @@
 struct SDL_Window;
 struct SDL_Renderer;
 
+namespace Image2Card::OCR
+{
+  class TesseractOCRProvider;
+}
+
 namespace Image2Card::UI
 {
   class ImageSection;
@@ -94,6 +99,8 @@ private:
     AI::ITextAIProvider* m_ActiveTextAIProvider = nullptr;
 
     std::unique_ptr<AI::IAudioAIProvider> m_AudioAIProvider;
+
+    std::unique_ptr<OCR::TesseractOCRProvider> m_TesseractOCRProvider;
 
     std::vector<std::unique_ptr<Language::ILanguage>> m_Languages;
     Language::ILanguage* m_ActiveLanguage = nullptr;

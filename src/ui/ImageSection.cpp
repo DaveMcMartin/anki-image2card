@@ -26,7 +26,12 @@ namespace Image2Card::UI
       , m_Languages(languages)
       , m_ActiveLanguage(activeLanguage)
       , m_ConfigManager(configManager)
-  {}
+  {
+    // Load tesseract orientation from config
+    if (m_ConfigManager) {
+      m_TesseractOrientation = m_ConfigManager->GetConfig().TesseractOrientation;
+    }
+  }
 
   ImageSection::~ImageSection()
   {
@@ -148,6 +153,53 @@ namespace Image2Card::UI
           }
         }
         ImGui::EndCombo();
+      }
+    }
+
+    // Orientation buttons for Tesseract OCR
+    if (m_ConfigManager) {
+      auto& config = m_ConfigManager->GetConfig();
+      if (config.OCRMethod == "Tesseract") {
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 20);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("OCR:");
+        ImGui::SameLine();
+
+        bool isHorizontal = (m_TesseractOrientation == "horizontal");
+        bool isVertical = (m_TesseractOrientation == "vertical");
+
+        if (isHorizontal) {
+          ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.59f, 0.98f, 1.0f));
+        }
+        if (ImGui::Button(ICON_FA_ARROWS_LEFT_RIGHT, ImVec2(30, 0))) {
+          m_TesseractOrientation = "horizontal";
+          config.TesseractOrientation = "horizontal";
+          m_ConfigManager->Save();
+        }
+        if (isHorizontal) {
+          ImGui::PopStyleColor();
+        }
+        if (ImGui::IsItemHovered()) {
+          ImGui::SetTooltip("Horizontal text");
+        }
+
+        ImGui::SameLine();
+
+        if (isVertical) {
+          ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.59f, 0.98f, 1.0f));
+        }
+        if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN, ImVec2(30, 0))) {
+          m_TesseractOrientation = "vertical";
+          config.TesseractOrientation = "vertical";
+          m_ConfigManager->Save();
+        }
+        if (isVertical) {
+          ImGui::PopStyleColor();
+        }
+        if (ImGui::IsItemHovered()) {
+          ImGui::SetTooltip("Vertical text");
+        }
       }
     }
 

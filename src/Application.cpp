@@ -18,6 +18,7 @@
 #include "core/Logger.h"
 #include "core/sdl/SDLWrappers.h"
 #include "language/JapaneseLanguage.h"
+#include "ocr/TesseractOCRProvider.h"
 #include "stb_image.h"
 #include "ui/AnkiCardSettingsSection.h"
 #include "ui/ConfigurationSection.h"
@@ -235,6 +236,14 @@ namespace Image2Card
     }
 
     m_AudioAIProvider = std::make_unique<AI::ElevenLabsAudioProvider>();
+
+    // Initialize Tesseract OCR
+    m_TesseractOCRProvider = std::make_unique<OCR::TesseractOCRProvider>();
+    std::string tessDataPath = m_BasePath + "tessdata";
+    std::string tessLanguage = "jpn"; // Default to Japanese
+    if (!m_TesseractOCRProvider->Initialize(tessDataPath, tessLanguage)) {
+      AF_WARN("Failed to initialize Tesseract OCR. AI OCR will be used as fallback.");
+    }
 
     // Load audio provider config
     {
@@ -472,6 +481,13 @@ namespace Image2Card
         ImGui::EndTabItem();
       }
 
+      if (ImGui::BeginTabItem("OCR")) {
+        if (m_ConfigurationSection) {
+          m_ConfigurationSection->RenderOCRTab();
+        }
+        ImGui::EndTabItem();
+      }
+
       ImGui::EndTabBar();
     }
     ImGui::End();
@@ -531,16 +547,36 @@ namespace Image2Card
     // Keep a copy of image bytes for UI field population
     std::vector<unsigned char> scanImage = imageBytes;
 
+    // Check OCR method from config
+    std::string ocrMethod = m_ConfigManager->GetConfig().OCRMethod;
+    std::string tesseractOrientation = m_ImageSection->GetTesseractOrientation();
+
     AsyncTask task;
     task.description = "OCR Image Processing";
-    task.future = std::async(std::launch::async, [this, imageBytes = std::move(imageBytes)]() {
+    task.future = std::async(std::launch::async, [this, imageBytes = std::move(imageBytes), ocrMethod, tesseractOrientation]() {
       try {
         if (m_CancelRequested.load()) {
           AF_INFO("OCR task cancelled before starting.");
           return;
         }
-        AF_INFO("Sending image to Text AI Provider for OCR...");
-        std::string text = m_ActiveTextAIProvider->ExtractTextFromImage(imageBytes, "image/png", m_ActiveLanguage);
+
+        std::string text;
+
+        if (ocrMethod == "Tesseract" && m_TesseractOCRProvider && m_TesseractOCRProvider->IsInitialized()) {
+          AF_INFO("Using Tesseract OCR with orientation: {}", tesseractOrientation);
+          
+          // Set orientation based on config
+          if (tesseractOrientation == "vertical") {
+            m_TesseractOCRProvider->SetOrientation(OCR::TesseractOrientation::Vertical);
+          } else {
+            m_TesseractOCRProvider->SetOrientation(OCR::TesseractOrientation::Horizontal);
+          }
+
+          text = m_TesseractOCRProvider->ExtractTextFromImage(imageBytes);
+        } else {
+          AF_INFO("Sending image to Text AI Provider for OCR...");
+          text = m_ActiveTextAIProvider->ExtractTextFromImage(imageBytes, "image/png", m_ActiveLanguage);
+        }
 
         if (m_ActiveLanguage) {
           text = m_ActiveLanguage->PostProcessOCR(text);

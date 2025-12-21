@@ -47,6 +47,10 @@ namespace Image2Card::UI
         RenderAudioAITab();
         ImGui::EndTabItem();
       }
+      if (ImGui::BeginTabItem("OCR")) {
+        RenderOCRTab();
+        ImGui::EndTabItem();
+      }
       ImGui::EndTabBar();
     }
   }
@@ -193,6 +197,59 @@ namespace Image2Card::UI
           m_ConfigManager->Save();
         }
       }
+    }
+  }
+
+  void ConfigurationSection::RenderOCRTab()
+  {
+    ImGui::Spacing();
+    ImGui::Text("OCR Method Selection");
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    if (!m_ConfigManager)
+      return;
+
+    auto& config = m_ConfigManager->GetConfig();
+
+    ImGui::Text("Select OCR Method:");
+    ImGui::Spacing();
+
+    bool isAI = (config.OCRMethod == "AI");
+    bool isTesseract = (config.OCRMethod == "Tesseract");
+
+    if (ImGui::RadioButton("AI (Cloud-based)", isAI)) {
+      config.OCRMethod = "AI";
+      m_ConfigManager->Save();
+    }
+
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered()) {
+      ImGui::SetTooltip("Uses AI providers (Google Gemini or xAI) for OCR.\nRequires internet connection and API key.");
+    }
+
+    if (ImGui::RadioButton("Tesseract (Local)", isTesseract)) {
+      config.OCRMethod = "Tesseract";
+      m_ConfigManager->Save();
+    }
+
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered()) {
+      ImGui::SetTooltip("Uses local Tesseract OCR.\nWorks offline, faster for simple text extraction.");
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    if (isTesseract) {
+      ImGui::Text("Tesseract is enabled.");
+      ImGui::TextWrapped("Note: Text orientation can be set using the buttons in the Image section.");
+    } else {
+      ImGui::Text("AI OCR is enabled.");
+      ImGui::TextWrapped("The selected Text AI provider will be used for OCR.");
     }
   }
 
