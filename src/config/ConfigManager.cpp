@@ -56,6 +56,9 @@ void ConfigManager::Load()
             }
         }
 
+        if (j.contains("ocr_method")) m_Config.OCRMethod = j["ocr_method"];
+        if (j.contains("tesseract_orientation")) m_Config.TesseractOrientation = j["tesseract_orientation"];
+
         if (j.contains("last_note_type")) m_Config.LastNoteType = j["last_note_type"];
         if (j.contains("last_deck")) m_Config.LastDeck = j["last_deck"];
 
@@ -110,6 +113,9 @@ void ConfigManager::Save()
         voicesJson.push_back({voice.first, voice.second});
     }
     j["audio_available_voices"] = voicesJson;
+
+    j["ocr_method"] = m_Config.OCRMethod;
+    j["tesseract_orientation"] = m_Config.TesseractOrientation;
 
     j["last_note_type"] = m_Config.LastNoteType;
     j["last_deck"] = m_Config.LastDeck;

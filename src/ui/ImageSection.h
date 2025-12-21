@@ -79,6 +79,13 @@ private:
     std::vector<std::unique_ptr<Language::ILanguage>>* m_Languages;
     Language::ILanguage** m_ActiveLanguage;
     Config::ConfigManager* m_ConfigManager;
+
+    // Tesseract Orientation
+    std::string m_TesseractOrientation = "horizontal";
+
+public:
+
+    std::string GetTesseractOrientation() const { return m_TesseractOrientation; }
   };
 
 } // namespace Image2Card::UI

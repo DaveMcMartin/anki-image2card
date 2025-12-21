@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <string>
 
 #include "ui/UIComponent.h"
@@ -49,6 +50,7 @@ public:
     void RenderAnkiConnectTab();
     void RenderTextAITab();
     void RenderAudioAITab();
+    void RenderOCRTab();
 
 private:
 

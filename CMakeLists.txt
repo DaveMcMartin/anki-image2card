@@ -46,6 +46,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cpp-httplib)
 
+# Find Tesseract OCR
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(TESSERACT REQUIRED tesseract)
+pkg_check_modules(LEPTONICA REQUIRED lept)
+
 add_library(imgui_sdl3 STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -84,6 +89,8 @@ target_include_directories(AnkiImage2Card PRIVATE
     src/core
     ${CMAKE_SOURCE_DIR}/third_party
     ${CMAKE_SOURCE_DIR}/assets
+    ${TESSERACT_INCLUDE_DIRS}
+    ${LEPTONICA_INCLUDE_DIRS}
 )
 
 target_link_libraries(AnkiImage2Card PRIVATE
@@ -93,12 +100,29 @@ target_link_libraries(AnkiImage2Card PRIVATE
     httplib::httplib
 )
 
+target_link_directories(AnkiImage2Card PRIVATE
+    ${TESSERACT_LIBRARY_DIRS}
+    ${LEPTONICA_LIBRARY_DIRS}
+)
+
+target_link_libraries(AnkiImage2Card PRIVATE
+    ${TESSERACT_LIBRARIES}
+    ${LEPTONICA_LIBRARIES}
+)
+
 if(APPLE)
     # Copy assets to Resources directory
     add_custom_command(TARGET AnkiImage2Card POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/assets
         $<TARGET_FILE_DIR:AnkiImage2Card>/../Resources/assets
+    )
+
+    # Copy tessdata to Resources directory
+    add_custom_command(TARGET AnkiImage2Card POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/tessdata
+        $<TARGET_FILE_DIR:AnkiImage2Card>/../Resources/tessdata
     )
 
     # Create Frameworks directory in the app bundle
@@ -128,6 +152,11 @@ if(APPLE)
         $<TARGET_FILE:AnkiImage2Card>
     )
 
+    # Bundle Tesseract and Leptonica libraries using script
+    add_custom_command(TARGET AnkiImage2Card POST_BUILD
+        COMMAND ${CMAKE_SOURCE_DIR}/cmake/bundle_ocr_libs.sh $<TARGET_FILE:AnkiImage2Card>
+    )
+
     # Set the rpath in the executable to find frameworks
     set_target_properties(AnkiImage2Card PROPERTIES
         MACOSX_BUNDLE_ICON_FILE logo.icns
@@ -142,6 +171,13 @@ else()
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/assets
         $<TARGET_FILE_DIR:AnkiImage2Card>/assets
+    )
+
+    # Copy tessdata directory
+    add_custom_command(TARGET AnkiImage2Card POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/tessdata
+        $<TARGET_FILE_DIR:AnkiImage2Card>/tessdata
     )
 endif()
 

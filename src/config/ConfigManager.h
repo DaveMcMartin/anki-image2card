@@ -32,6 +32,10 @@ namespace Image2Card::Config
     std::string AudioVoiceId;
     std::vector<std::pair<std::string, std::string>> AudioAvailableVoices;
 
+    // OCR Configuration
+    std::string OCRMethod = "Tesseract"; // "AI" or "Tesseract"
+    std::string TesseractOrientation = "horizontal"; // "horizontal" or "vertical"
+
     // UI State
     std::string LastNoteType;
     std::string LastDeck;

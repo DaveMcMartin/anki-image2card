@@ -11,6 +11,7 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 - **AI Integration**:
   - **Text AI**: Integration with Gemini (Google) and xAI (Grok) for OCR and sentence analysis.
   - **Audio AI**: Integration with ElevenLabs for high-quality text-to-speech.
+- **Local OCR**: Built-in Tesseract OCR support for offline, fast text extraction with configurable text orientation (horizontal/vertical).
 - **Anki Integration**: Connects directly to Anki via AnkiConnect to create cards automatically.
 - **Smart Fields**: Automatically detects and fills fields like Sentence, Translation, Target Word, Furigana, Pitch Accent, and Definitions.
 
@@ -31,6 +32,10 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 - **C++ Compiler**: A C++23 compatible compiler (Clang 17+, GCC 13+, MSVC 2022+).
 - **CMake**: Version 3.25 or higher.
 - **Git**: For fetching dependencies.
+- **Tesseract OCR**: Required for local OCR functionality.
+  - **macOS**: `brew install tesseract`
+  - **Linux**: `sudo apt-get install tesseract-ocr libtesseract-dev` (Ubuntu/Debian) or equivalent
+  - **Windows**: Download from [UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki)
 - **Anki**: With the [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on installed.
 
 ## Building
@@ -78,9 +83,12 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
   - `audio/` - Audio processing and playback
   - `config/` - Configuration management
   - `language/` - Language utilities
+  - `ocr/` - OCR providers (Tesseract)
   - `utils/` - Utility functions
+- `cmake/` - CMake build scripts and utilities
 - `docs/` - Documentation and screenshots
 - `assets/` - Application assets (icons, etc.)
+- `tessdata/` - Tesseract language data files
 
 ## Usage
 
@@ -90,10 +98,17 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
    - Enter your API keys for Text AI providers and Audio AI providers you want to use.
    - On the Card tab, select the Note Type, deck, and fields you want to fill.
 
-2. **Card Creation**:
+2. **OCR Configuration**:
+   - Go to the "Configuration" tab and select the "OCR" subtab.
+   - Choose between **Tesseract (Local)** or **AI (Cloud-based)** OCR methods.
+   - Tesseract is faster, works offline, and is ideal for simple text extraction.
+   - AI OCR provides better accuracy for complex layouts and handwriting.
+
+3. **Card Creation**:
    - Drag and drop an image (e.g., a page from a manga or book) into the Image Section.
    - Select the area you want to scan.
-   - Click "Scan" to process the image with AI.
+   - If using Tesseract, select the text orientation (horizontal or vertical) using the buttons in the Image Section.
+   - Click "Scan" to process the image with your configured OCR method.
    - Review the generated fields in the "Anki Card Settings" section.
    - Click "Add" to create the card in Anki.
 
@@ -117,8 +132,10 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 - **ImGui**: Immediate-mode GUI framework with docking support.
 - **nlohmann/json**: Modern JSON library for C++.
 - **cpp-httplib**: Lightweight HTTP client library.
+- **Tesseract OCR**: Local optical character recognition.
+- **Leptonica**: Image processing library (dependency of Tesseract).
 
-All dependencies are automatically fetched and built by CMake.
+Most dependencies are automatically fetched and built by CMake. Tesseract and Leptonica are found using pkg-config on your system.
 
 ## License
 
@@ -129,7 +146,7 @@ This project is licensed under the GNU General Public License v3.0 (GPLv3). See 
 This is a work in progress. Here are some planned features, it is not in priority order:
 
 - [ ] Github Action on release that generates binaries for Windows, macOS, and Linux.
-- [ ] Add local OCR option with Tesseract and make it default
+- [x] Add local OCR option with Tesseract with configurable text orientation
 - [x] Add support for multiple images
 - [ ] Add support for Ollama
 - [ ] Give user more control over AI configuration (prompts, etc)
