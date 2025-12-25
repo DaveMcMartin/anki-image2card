@@ -186,7 +186,13 @@ namespace Image2Card
     std::string iconFontPath = m_BasePath + "assets/fa-solid-900.ttf";
     io.Fonts->AddFontFromFileTTF(iconFontPath.c_str(), iconFontSize, &icons_config, icons_ranges);
 
-    m_ConfigManager = std::make_unique<Config::ConfigManager>();
+    char* prefPath = SDL_GetPrefPath("Image2Card", "AnkiImage2Card");
+    std::string configPath = "config.json";
+    if (prefPath) {
+      configPath = std::string(prefPath) + "config.json";
+      SDL_free(prefPath);
+    }
+    m_ConfigManager = std::make_unique<Config::ConfigManager>(configPath);
 
     // Initialize language system
     m_Languages.push_back(std::make_unique<Language::JapaneseLanguage>());
@@ -207,34 +213,28 @@ namespace Image2Card
     m_TextAIProviders.push_back(std::make_unique<AI::GoogleTextProvider>());
     m_TextAIProviders.push_back(std::make_unique<AI::XAiTextProvider>());
 
-    // Set active provider from config
-    std::string selectedProvider = m_ConfigManager->GetConfig().TextProvider;
-    for (auto& provider : m_TextAIProviders) {
-      if (provider->GetId() == selectedProvider || provider->GetName() == selectedProvider) {
-        m_ActiveTextAIProvider = provider.get();
-        break;
-      }
-    }
-    // Default to first provider if not found
-    if (!m_ActiveTextAIProvider && !m_TextAIProviders.empty()) {
-      m_ActiveTextAIProvider = m_TextAIProviders[0].get();
-    }
+
 
     // Load provider configs
     for (auto& provider : m_TextAIProviders) {
       nlohmann::json providerConfig;
       if (provider->GetId() == "xai") {
         providerConfig["api_key"] = m_ConfigManager->GetConfig().TextApiKey;
-        providerConfig["vision_model"] = m_ConfigManager->GetConfig().TextVisionModel;
-        providerConfig["sentence_model"] = m_ConfigManager->GetConfig().TextSentenceModel;
         providerConfig["available_models"] = m_ConfigManager->GetConfig().TextAvailableModels;
       } else if (provider->GetId() == "google") {
         providerConfig["api_key"] = m_ConfigManager->GetConfig().GoogleApiKey;
-        providerConfig["vision_model"] = m_ConfigManager->GetConfig().GoogleVisionModel;
-        providerConfig["sentence_model"] = m_ConfigManager->GetConfig().GoogleSentenceModel;
         providerConfig["available_models"] = m_ConfigManager->GetConfig().GoogleAvailableModels;
       }
       provider->LoadConfig(providerConfig);
+    }
+
+    // Initialize defaults for selected models if empty
+    auto& config = m_ConfigManager->GetConfig();
+    if (config.SelectedVisionModel.empty()) {
+      config.SelectedVisionModel = "xAI/grok-2-vision-1212";
+    }
+    if (config.SelectedAnalysisModel.empty()) {
+      config.SelectedAnalysisModel = "xAI/grok-2-1212";
     }
 
     m_AudioAIProvider = std::make_unique<AI::ElevenLabsAudioProvider>();
@@ -263,6 +263,11 @@ namespace Image2Card
       m_AudioAIProvider->LoadConfig(audioConfig);
     }
 
+    if (m_ConfigManager->GetConfig().SelectedVoiceModel.empty()) {
+      m_ConfigManager->GetConfig().SelectedVoiceModel =
+          "ElevenLabs/" + m_ConfigManager->GetConfig().AudioVoiceId;
+    }
+
     std::string ankiUrl = m_ConfigManager->GetConfig().AnkiConnectUrl;
     if (ankiUrl.empty())
       ankiUrl = "http://localhost:8765";
@@ -273,7 +278,6 @@ namespace Image2Card
     m_ConfigurationSection = std::make_unique<UI::ConfigurationSection>(m_AnkiConnectClient.get(),
                                                                         m_ConfigManager.get(),
                                                                         &m_TextAIProviders,
-                                                                        &m_ActiveTextAIProvider,
                                                                         m_AudioAIProvider.get(),
                                                                         &m_Languages,
                                                                         &m_ActiveLanguage);
@@ -473,16 +477,9 @@ namespace Image2Card
         ImGui::EndTabItem();
       }
 
-      if (ImGui::BeginTabItem("Text AI")) {
+      if (ImGui::BeginTabItem("AI")) {
         if (m_ConfigurationSection) {
-          m_ConfigurationSection->RenderTextAITab();
-        }
-        ImGui::EndTabItem();
-      }
-
-      if (ImGui::BeginTabItem("Audio AI")) {
-        if (m_ConfigurationSection) {
-          m_ConfigurationSection->RenderAudioAITab();
+          m_ConfigurationSection->RenderAITab();
         }
         ImGui::EndTabItem();
       }
@@ -503,6 +500,32 @@ namespace Image2Card
     }
 
     RenderScanModal();
+  }
+
+  AI::ITextAIProvider* Application::GetTextProviderForModel(const std::string& modelLabel)
+  {
+    if (modelLabel.empty()) {
+      if (!m_TextAIProviders.empty())
+        return m_TextAIProviders[0].get();
+      return nullptr;
+    }
+
+    std::string providerName;
+    size_t slashPos = modelLabel.find('/');
+    if (slashPos != std::string::npos) {
+      providerName = modelLabel.substr(0, slashPos);
+    }
+
+    for (auto& provider : m_TextAIProviders) {
+      if (providerName == "xAI" && provider->GetId() == "xai")
+        return provider.get();
+      if (providerName == "Google" && provider->GetId() == "google")
+        return provider.get();
+    }
+
+    if (!m_TextAIProviders.empty())
+      return m_TextAIProviders[0].get();
+    return nullptr;
   }
 
   void Application::OnScan()
@@ -554,12 +577,14 @@ namespace Image2Card
     std::vector<unsigned char> scanImage = imageBytes;
 
     // Check OCR method from config
-    std::string ocrMethod = m_ConfigManager->GetConfig().OCRMethod;
+    auto& config = m_ConfigManager->GetConfig();
+    std::string ocrMethod = config.OCRMethod;
     std::string tesseractOrientation = m_ImageSection->GetTesseractOrientation();
+    std::string selectedVisionModel = config.SelectedVisionModel;
 
     AsyncTask task;
     task.description = "OCR Image Processing";
-    task.future = std::async(std::launch::async, [this, imageBytes = std::move(imageBytes), ocrMethod, tesseractOrientation]() {
+    task.future = std::async(std::launch::async, [this, imageBytes = std::move(imageBytes), ocrMethod, tesseractOrientation, selectedVisionModel]() {
       try {
         if (m_CancelRequested.load()) {
           AF_INFO("OCR task cancelled before starting.");
@@ -581,7 +606,22 @@ namespace Image2Card
           text = m_TesseractOCRProvider->ExtractTextFromImage(imageBytes);
         } else {
           AF_INFO("Sending image to Text AI Provider for OCR...");
-          text = m_ActiveTextAIProvider->ExtractTextFromImage(imageBytes, "image/png", m_ActiveLanguage);
+          auto* provider = GetTextProviderForModel(selectedVisionModel);
+          if (!provider) {
+            throw std::runtime_error("No Text AI Provider found for selected vision model.");
+          }
+
+          // Update provider with selected model
+          std::string modelName = selectedVisionModel;
+          size_t slashPos = modelName.find('/');
+          if (slashPos != std::string::npos) {
+            modelName = modelName.substr(slashPos + 1);
+          }
+          nlohmann::json config;
+          config["vision_model"] = modelName;
+          provider->LoadConfig(config);
+
+          text = provider->ExtractTextFromImage(imageBytes, "image/png", m_ActiveLanguage);
         }
 
         if (m_ActiveLanguage) {
@@ -638,10 +678,8 @@ namespace Image2Card
       m_ScanSentence = ocrResult;
       m_ScanTargetWord = "";
 
-      // Set voice to current audio provider voice
-      if (m_AudioAIProvider) {
-        m_ScanVoice = m_AudioAIProvider->GetCurrentVoiceId();
-      }
+      // Set voice from config
+      m_ScanVoice = m_ConfigManager->GetConfig().AudioVoiceId;
 
       m_ScanSentence.reserve(256);
       m_ScanTargetWord.reserve(64);
@@ -788,6 +826,7 @@ namespace Image2Card
       m_StatusSection->SetProgress(0.1f);
 
     std::string languageCode = m_ActiveLanguage ? m_ActiveLanguage->GetLanguageCode() : "";
+    std::string selectedAnalysisModel = m_ConfigManager->GetConfig().SelectedAnalysisModel;
 
     {
       std::lock_guard<std::mutex> lock(m_ResultMutex);
@@ -796,7 +835,7 @@ namespace Image2Card
 
     AsyncTask task;
     task.description = "Scan Processing";
-    task.future = std::async(std::launch::async, [this, sentence, targetWord, voice, fullImage, languageCode]() {
+    task.future = std::async(std::launch::async, [this, sentence, targetWord, voice, fullImage, languageCode, selectedAnalysisModel]() {
       try {
         if (m_CancelRequested.load()) {
           AF_INFO("Processing task cancelled before starting.");
@@ -804,7 +843,23 @@ namespace Image2Card
         }
         AF_INFO("Analyzing sentence...");
         AF_DEBUG("Sentence: '{}', Target Word: '{}'", sentence, targetWord);
-        nlohmann::json analysis = m_ActiveTextAIProvider->AnalyzeSentence(sentence, targetWord, m_ActiveLanguage);
+        
+        auto* provider = GetTextProviderForModel(selectedAnalysisModel);
+        if (!provider) {
+          throw std::runtime_error("No Text AI Provider found for selected analysis model.");
+        }
+
+        // Update provider with selected model
+        std::string modelName = selectedAnalysisModel;
+        size_t slashPos = modelName.find('/');
+        if (slashPos != std::string::npos) {
+          modelName = modelName.substr(slashPos + 1);
+        }
+        nlohmann::json config;
+        config["sentence_model"] = modelName;
+        provider->LoadConfig(config);
+
+        nlohmann::json analysis = provider->AnalyzeSentence(sentence, targetWord, m_ActiveLanguage);
 
         if (m_CancelRequested.load()) {
           AF_INFO("Processing task cancelled after analysis.");

@@ -31,19 +31,26 @@ void ConfigManager::Load()
 
         if (j.contains("selected_language")) m_Config.SelectedLanguage = j["selected_language"];
 
-        if (j.contains("text_provider")) m_Config.TextProvider = j["text_provider"];
+        if (j.contains("selected_vision_model")) m_Config.SelectedVisionModel = j["selected_vision_model"];
+        if (j.contains("selected_analysis_model")) m_Config.SelectedAnalysisModel = j["selected_analysis_model"];
+        if (j.contains("selected_voice_model")) m_Config.SelectedVoiceModel = j["selected_voice_model"];
+
         if (j.contains("text_api_key")) m_Config.TextApiKey = j["text_api_key"];
-        if (j.contains("text_vision_model")) m_Config.TextVisionModel = j["text_vision_model"];
-        if (j.contains("text_sentence_model")) m_Config.TextSentenceModel = j["text_sentence_model"];
         if (j.contains("text_available_models")) m_Config.TextAvailableModels = j["text_available_models"].get<std::vector<std::string>>();
 
         if (j.contains("google_api_key")) m_Config.GoogleApiKey = j["google_api_key"];
-        if (j.contains("google_vision_model")) m_Config.GoogleVisionModel = j["google_vision_model"];
-        if (j.contains("google_sentence_model")) m_Config.GoogleSentenceModel = j["google_sentence_model"];
-        if (j.contains("google_model")) m_Config.GoogleVisionModel = j["google_model"]; // Fallback for old config
         if (j.contains("google_available_models")) m_Config.GoogleAvailableModels = j["google_available_models"].get<std::vector<std::string>>();
-
-        if (j.contains("audio_provider")) m_Config.AudioProvider = j["audio_provider"];
+        
+        // Migration: Convert old google_vision_model/google_sentence_model to new format
+        if (j.contains("google_vision_model") && m_Config.SelectedVisionModel.empty()) {
+            m_Config.SelectedVisionModel = "Google/" + j["google_vision_model"].get<std::string>();
+        }
+        if (j.contains("google_sentence_model") && m_Config.SelectedAnalysisModel.empty()) {
+            m_Config.SelectedAnalysisModel = "Google/" + j["google_sentence_model"].get<std::string>();
+        }
+        if (j.contains("google_model") && m_Config.SelectedVisionModel.empty()) {
+            m_Config.SelectedVisionModel = "Google/" + j["google_model"].get<std::string>();
+        }
         if (j.contains("audio_api_key")) m_Config.AudioApiKey = j["audio_api_key"];
         if (j.contains("audio_voice_id")) m_Config.AudioVoiceId = j["audio_voice_id"];
         if (j.contains("audio_available_voices"))
@@ -97,18 +104,15 @@ void ConfigManager::Save()
 
     j["selected_language"] = m_Config.SelectedLanguage;
 
-    j["text_provider"] = m_Config.TextProvider;
+    j["selected_vision_model"] = m_Config.SelectedVisionModel;
+    j["selected_analysis_model"] = m_Config.SelectedAnalysisModel;
+    j["selected_voice_model"] = m_Config.SelectedVoiceModel;
+
     j["text_api_key"] = m_Config.TextApiKey;
-    j["text_vision_model"] = m_Config.TextVisionModel;
-    j["text_sentence_model"] = m_Config.TextSentenceModel;
     j["text_available_models"] = m_Config.TextAvailableModels;
 
     j["google_api_key"] = m_Config.GoogleApiKey;
-    j["google_vision_model"] = m_Config.GoogleVisionModel;
-    j["google_sentence_model"] = m_Config.GoogleSentenceModel;
     j["google_available_models"] = m_Config.GoogleAvailableModels;
-
-    j["audio_provider"] = m_Config.AudioProvider;
     j["audio_api_key"] = m_Config.AudioApiKey;
     j["audio_voice_id"] = m_Config.AudioVoiceId;
 

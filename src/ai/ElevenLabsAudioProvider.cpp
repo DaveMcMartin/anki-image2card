@@ -26,6 +26,10 @@ namespace Image2Card::AI
       changed = true;
     }
 
+    if (m_VoicesUpdated.exchange(false)) {
+      changed = true;
+    }
+
     if (ImGui::Button("Load Voices")) {
       std::thread([this]() { LoadRemoteVoices(); }).detach();
       changed = true;
@@ -39,9 +43,7 @@ namespace Image2Card::AI
       ImGui::Text("%s", m_StatusMessage.c_str());
     }
 
-    if (RenderVoiceSelector("Voice", &m_VoiceId)) {
-      changed = true;
-    }
+
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -160,6 +162,7 @@ namespace Image2Card::AI
                   [](const ElevenLabsVoice& a, const ElevenLabsVoice& b) { return a.Name < b.Name; });
 
         m_StatusMessage = "Voices loaded.";
+        m_VoicesUpdated.store(true);
       } else {
         m_StatusMessage = "Error loading voices: " + std::to_string(res ? res->status : 0);
       }

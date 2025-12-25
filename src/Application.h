@@ -77,6 +77,8 @@ private:
     void UpdateAsyncTasks();
     void CancelAsyncTasks();
 
+    AI::ITextAIProvider* GetTextProviderForModel(const std::string& modelName);
+
     std::string m_Title;
     int m_Width;
     int m_Height;
@@ -96,7 +98,6 @@ private:
     std::unique_ptr<Config::ConfigManager> m_ConfigManager;
 
     std::vector<std::unique_ptr<AI::ITextAIProvider>> m_TextAIProviders;
-    AI::ITextAIProvider* m_ActiveTextAIProvider = nullptr;
 
     std::unique_ptr<AI::IAudioAIProvider> m_AudioAIProvider;
 

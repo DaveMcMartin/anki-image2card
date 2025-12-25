@@ -44,6 +44,7 @@ private:
     bool m_IsLoadingModels = false;
     std::string m_StatusMessage;
     std::atomic<bool> m_CancelLoadModels{false};
+    std::atomic<bool> m_ModelsUpdated{false};
   };
 
 } // namespace Image2Card::AI

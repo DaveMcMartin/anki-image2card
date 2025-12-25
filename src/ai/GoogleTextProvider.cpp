@@ -29,6 +29,10 @@ namespace Image2Card::AI
       changed = true;
     }
 
+    if (m_ModelsUpdated.exchange(false)) {
+      changed = true;
+    }
+
     if (m_IsLoadingModels) {
       if (ImGui::Button("Cancel")) {
         m_CancelLoadModels.store(true);
@@ -48,33 +52,7 @@ namespace Image2Card::AI
       ImGui::Text("%s", m_StatusMessage.c_str());
     }
 
-    std::vector<std::string> displayModels = m_AvailableModels;
 
-    if (ImGui::BeginCombo("Vision Model", m_VisionModel.c_str())) {
-      for (const auto& model : displayModels) {
-        bool is_selected = (m_VisionModel == model);
-        if (ImGui::Selectable(model.c_str(), is_selected)) {
-          m_VisionModel = model;
-          changed = true;
-        }
-        if (is_selected)
-          ImGui::SetItemDefaultFocus();
-      }
-      ImGui::EndCombo();
-    }
-
-    if (ImGui::BeginCombo("Sentence Model", m_SentenceModel.c_str())) {
-      for (const auto& model : displayModels) {
-        bool is_selected = (m_SentenceModel == model);
-        if (ImGui::Selectable(model.c_str(), is_selected)) {
-          m_SentenceModel = model;
-          changed = true;
-        }
-        if (is_selected)
-          ImGui::SetItemDefaultFocus();
-      }
-      ImGui::EndCombo();
-    }
 
     return changed;
   }
@@ -142,6 +120,7 @@ namespace Image2Card::AI
         }
         m_AvailableModels = newModels;
         m_StatusMessage = "Models loaded.";
+        m_ModelsUpdated.store(true);
       } else {
         m_StatusMessage = "Error loading models: " + std::to_string(res ? res->status : 0);
       }
