@@ -154,11 +154,6 @@ This is a work in progress. Here are some planned features, it is not in priorit
 - [ ] Give user more control over AI configuration (prompts, etc)
 - [ ] Add custom auto-fill fields for the user
 - [ ] Add local audio generation
-<<<<<<< HEAD
-=======
-- [ ] Add support for OpenAI
-- [ ] Add support for DeepSeek
->>>>>>> main
 - [ ] Switch from Tesseract to PaddleOCR
 
 ## Contributing
