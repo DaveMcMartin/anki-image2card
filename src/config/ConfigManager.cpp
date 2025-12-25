@@ -40,6 +40,17 @@ void ConfigManager::Load()
 
         if (j.contains("google_api_key")) m_Config.GoogleApiKey = j["google_api_key"];
         if (j.contains("google_available_models")) m_Config.GoogleAvailableModels = j["google_available_models"].get<std::vector<std::string>>();
+        
+        // Migration: Convert old google_vision_model/google_sentence_model to new format
+        if (j.contains("google_vision_model") && m_Config.SelectedVisionModel.empty()) {
+            m_Config.SelectedVisionModel = "Google/" + j["google_vision_model"].get<std::string>();
+        }
+        if (j.contains("google_sentence_model") && m_Config.SelectedAnalysisModel.empty()) {
+            m_Config.SelectedAnalysisModel = "Google/" + j["google_sentence_model"].get<std::string>();
+        }
+        if (j.contains("google_model") && m_Config.SelectedVisionModel.empty()) {
+            m_Config.SelectedVisionModel = "Google/" + j["google_model"].get<std::string>();
+        }
         if (j.contains("audio_api_key")) m_Config.AudioApiKey = j["audio_api_key"];
         if (j.contains("audio_voice_id")) m_Config.AudioVoiceId = j["audio_voice_id"];
         if (j.contains("audio_available_voices"))
