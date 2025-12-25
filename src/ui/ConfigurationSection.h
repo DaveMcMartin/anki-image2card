@@ -37,7 +37,6 @@ public:
     ConfigurationSection(API::AnkiConnectClient* ankiConnectClient,
                          Config::ConfigManager* configManager,
                          std::vector<std::unique_ptr<AI::ITextAIProvider>>* textAIProviders,
-                         AI::ITextAIProvider** activeTextAIProvider,
                          AI::IAudioAIProvider* audioAIProvider,
                          std::vector<std::unique_ptr<Language::ILanguage>>* languages,
                          Language::ILanguage** activeLanguage);
@@ -48,8 +47,7 @@ public:
     void SetOnConnectCallback(std::function<void()> callback) { m_OnConnectCallback = callback; }
 
     void RenderAnkiConnectTab();
-    void RenderTextAITab();
-    void RenderAudioAITab();
+    void RenderAITab();
     void RenderOCRTab();
 
 private:
@@ -61,7 +59,6 @@ private:
     API::AnkiConnectClient* m_AnkiConnectClient;
     Config::ConfigManager* m_ConfigManager;
     std::vector<std::unique_ptr<AI::ITextAIProvider>>* m_TextAIProviders;
-    AI::ITextAIProvider** m_ActiveTextAIProvider;
     AI::IAudioAIProvider* m_AudioAIProvider;
     std::vector<std::unique_ptr<Language::ILanguage>>* m_Languages;
     Language::ILanguage** m_ActiveLanguage;

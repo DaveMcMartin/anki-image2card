@@ -17,18 +17,17 @@ namespace Image2Card::Config
 
     std::string SelectedLanguage = "JP";
 
-    std::string TextProvider = "xAI";
+    // Global Model Selection
+    std::string SelectedVisionModel;
+    std::string SelectedAnalysisModel;
+    std::string SelectedVoiceModel;
+
     std::string TextApiKey;
-    std::string TextVisionModel = "grok-2-vision-1212";
-    std::string TextSentenceModel = "grok-2-1212";
     std::vector<std::string> TextAvailableModels;
 
     std::string GoogleApiKey;
-    std::string GoogleVisionModel = "gemini-2.0-flash";
-    std::string GoogleSentenceModel = "gemini-2.0-flash";
     std::vector<std::string> GoogleAvailableModels;
 
-    std::string AudioProvider = "ElevenLabs";
     std::string AudioApiKey;
     std::string AudioVoiceId;
     std::vector<std::pair<std::string, std::string>> AudioAvailableVoices;

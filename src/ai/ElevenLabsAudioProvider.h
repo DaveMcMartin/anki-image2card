@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <string>
 #include <vector>
 
@@ -54,6 +55,7 @@ private:
     std::vector<ElevenLabsVoice> m_AvailableVoices;
     bool m_IsLoadingVoices = false;
     std::string m_StatusMessage;
+    std::atomic<bool> m_VoicesUpdated{false};
   };
 
 } // namespace Image2Card::AI

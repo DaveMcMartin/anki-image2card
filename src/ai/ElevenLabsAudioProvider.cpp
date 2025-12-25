@@ -26,6 +26,10 @@ namespace Image2Card::AI
       changed = true;
     }
 
+    if (m_VoicesUpdated.exchange(false)) {
+      changed = true;
+    }
+
     if (ImGui::Button("Load Voices")) {
       std::thread([this]() { LoadRemoteVoices(); }).detach();
       changed = true;
@@ -39,27 +43,7 @@ namespace Image2Card::AI
       ImGui::Text("%s", m_StatusMessage.c_str());
     }
 
-    if (RenderVoiceSelector("Voice", &m_VoiceId)) {
-      changed = true;
-    }
 
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-
-    ImGui::Text("Audio Format:");
-    static const char* formats[] = {"MP3", "Opus"};
-    static const char* formatValues[] = {"mp3", "opus"};
-    
-    int currentFormatIdx = 0;
-    if (m_AudioFormat == "opus") {
-      currentFormatIdx = 1;
-    }
-
-    if (ImGui::Combo("##audio_format", &currentFormatIdx, formats, IM_ARRAYSIZE(formats))) {
-      m_AudioFormat = formatValues[currentFormatIdx];
-      changed = true;
-    }
 
     return changed;
   }
@@ -103,8 +87,6 @@ namespace Image2Card::AI
       m_ApiKey = json["api_key"];
     if (json.contains("voice_id"))
       m_VoiceId = json["voice_id"];
-    if (json.contains("audio_format"))
-      m_AudioFormat = json["audio_format"];
     if (json.contains("available_voices")) {
       m_AvailableVoices.clear();
       for (const auto& item : json["available_voices"]) {
@@ -122,7 +104,7 @@ namespace Image2Card::AI
       voicesJson.push_back({voice.Id, voice.Name});
     }
 
-    return {{"api_key", m_ApiKey}, {"voice_id", m_VoiceId}, {"audio_format", m_AudioFormat}, {"available_voices", voicesJson}};
+    return {{"api_key", m_ApiKey}, {"voice_id", m_VoiceId}, {"available_voices", voicesJson}};
   }
 
   void ElevenLabsAudioProvider::LoadRemoteVoices()
@@ -160,6 +142,7 @@ namespace Image2Card::AI
                   [](const ElevenLabsVoice& a, const ElevenLabsVoice& b) { return a.Name < b.Name; });
 
         m_StatusMessage = "Voices loaded.";
+        m_VoicesUpdated.store(true);
       } else {
         m_StatusMessage = "Error loading voices: " + std::to_string(res ? res->status : 0);
       }

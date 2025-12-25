@@ -17,14 +17,12 @@ namespace Image2Card::UI
   ConfigurationSection::ConfigurationSection(API::AnkiConnectClient* ankiConnectClient,
                                              Config::ConfigManager* configManager,
                                              std::vector<std::unique_ptr<AI::ITextAIProvider>>* textAIProviders,
-                                             AI::ITextAIProvider** activeTextAIProvider,
                                              AI::IAudioAIProvider* audioAIProvider,
                                              std::vector<std::unique_ptr<Language::ILanguage>>* languages,
                                              Language::ILanguage** activeLanguage)
       : m_AnkiConnectClient(ankiConnectClient)
       , m_ConfigManager(configManager)
       , m_TextAIProviders(textAIProviders)
-      , m_ActiveTextAIProvider(activeTextAIProvider)
       , m_AudioAIProvider(audioAIProvider)
       , m_Languages(languages)
       , m_ActiveLanguage(activeLanguage)
@@ -39,12 +37,8 @@ namespace Image2Card::UI
         RenderAnkiConnectTab();
         ImGui::EndTabItem();
       }
-      if (ImGui::BeginTabItem("Text AI")) {
-        RenderTextAITab();
-        ImGui::EndTabItem();
-      }
-      if (ImGui::BeginTabItem("Audio AI")) {
-        RenderAudioAITab();
+      if (ImGui::BeginTabItem("AI")) {
+        RenderAITab();
         ImGui::EndTabItem();
       }
       if (ImGui::BeginTabItem("OCR")) {
@@ -101,106 +95,189 @@ namespace Image2Card::UI
     }
   }
 
-  void ConfigurationSection::RenderTextAITab()
+  void ConfigurationSection::RenderAITab()
   {
-    ImGui::Spacing();
-    ImGui::Text("Text AI Provider Selection");
-    ImGui::Separator();
-    ImGui::Spacing();
-
-    if (!m_TextAIProviders || !m_ActiveTextAIProvider || !m_ConfigManager)
+    if (!m_ConfigManager)
       return;
 
     auto& config = m_ConfigManager->GetConfig();
 
-    if (ImGui::BeginCombo("Provider", (*m_ActiveTextAIProvider)->GetName().c_str())) {
-      for (auto& provider : *m_TextAIProviders) {
-        bool isSelected = (provider.get() == *m_ActiveTextAIProvider);
-        if (ImGui::Selectable(provider->GetName().c_str(), isSelected)) {
-          *m_ActiveTextAIProvider = provider.get();
-          config.TextProvider = provider->GetId();
-          m_ConfigManager->Save();
-        }
-        if (isSelected) {
-          ImGui::SetItemDefaultFocus();
-        }
-      }
-      ImGui::EndCombo();
-    }
-
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-
-    if (*m_ActiveTextAIProvider) {
-      ImGui::Text("Provider Configuration:");
+    // 1. ElevenLabs (Audio)
+    if (m_AudioAIProvider) {
+      ImGui::PushID("AudioProvider");
+      ImGui::Spacing();
+      ImGui::Text("%s", m_AudioAIProvider->GetName().c_str());
+      ImGui::Separator();
       ImGui::Spacing();
 
-      if ((*m_ActiveTextAIProvider)->RenderConfigurationUI()) {
-        auto j = (*m_ActiveTextAIProvider)->SaveConfig();
-        std::string providerId = (*m_ActiveTextAIProvider)->GetId();
+      if (m_AudioAIProvider->RenderConfigurationUI()) {
+        auto j = m_AudioAIProvider->SaveConfig();
 
-        if (providerId == "xai") {
-          if (j.contains("api_key"))
-            config.TextApiKey = j["api_key"];
-          if (j.contains("vision_model"))
-            config.TextVisionModel = j["vision_model"];
-          if (j.contains("sentence_model"))
-            config.TextSentenceModel = j["sentence_model"];
-          if (j.contains("available_models"))
-            config.TextAvailableModels = j["available_models"].get<std::vector<std::string>>();
-        } else if (providerId == "google") {
-          if (j.contains("api_key"))
-            config.GoogleApiKey = j["api_key"];
-          if (j.contains("vision_model"))
-            config.GoogleVisionModel = j["vision_model"];
-          if (j.contains("sentence_model"))
-            config.GoogleSentenceModel = j["sentence_model"];
-          if (j.contains("available_models"))
-            config.GoogleAvailableModels = j["available_models"].get<std::vector<std::string>>();
+        if (j.contains("api_key"))
+          config.AudioApiKey = j["api_key"];
+        if (j.contains("voice_id"))
+          config.AudioVoiceId = j["voice_id"];
+        if (j.contains("audio_format"))
+          config.AudioFormat = j["audio_format"];
+
+        if (j.contains("available_voices")) {
+          config.AudioAvailableVoices.clear();
+          for (const auto& item : j["available_voices"]) {
+            if (item.is_array() && item.size() == 2) {
+              config.AudioAvailableVoices.push_back({item[0], item[1]});
+            }
+          }
         }
 
         m_ConfigManager->Save();
       }
+      ImGui::PopID();
     }
-  }
 
-  void ConfigurationSection::RenderAudioAITab()
-  {
+    // 2. Text Providers (Google, xAI)
+    if (m_TextAIProviders) {
+      // Google
+      for (auto& provider : *m_TextAIProviders) {
+        if (provider->GetId() == "google") {
+          ImGui::PushID("GoogleProvider");
+          ImGui::Spacing();
+          ImGui::Text("%s", provider->GetName().c_str());
+          ImGui::Separator();
+          ImGui::Spacing();
+
+          if (provider->RenderConfigurationUI()) {
+            auto j = provider->SaveConfig();
+            if (j.contains("api_key"))
+              config.GoogleApiKey = j["api_key"];
+
+            if (j.contains("available_models"))
+              config.GoogleAvailableModels = j["available_models"].get<std::vector<std::string>>();
+            m_ConfigManager->Save();
+          }
+          ImGui::PopID();
+        }
+      }
+
+      // xAI
+      for (auto& provider : *m_TextAIProviders) {
+        if (provider->GetId() == "xai") {
+          ImGui::PushID("xAIProvider");
+          ImGui::Spacing();
+          ImGui::Text("%s", provider->GetName().c_str());
+          ImGui::Separator();
+          ImGui::Spacing();
+
+          if (provider->RenderConfigurationUI()) {
+            auto j = provider->SaveConfig();
+            if (j.contains("api_key"))
+              config.TextApiKey = j["api_key"];
+
+            if (j.contains("available_models"))
+              config.TextAvailableModels = j["available_models"].get<std::vector<std::string>>();
+            m_ConfigManager->Save();
+          }
+          ImGui::PopID();
+        }
+      }
+    }
+
+    // 3. Action Configuration
     ImGui::Spacing();
-    ImGui::Text("Audio AI Provider");
+    ImGui::Text("Action Configuration");
     ImGui::Separator();
     ImGui::Spacing();
 
-    if (m_AudioAIProvider) {
-      ImGui::Text("Provider: %s", m_AudioAIProvider->GetName().c_str());
-      ImGui::Spacing();
-
-      if (m_AudioAIProvider->RenderConfigurationUI()) {
-        // Save changes to config
-        if (m_ConfigManager) {
-          auto j = m_AudioAIProvider->SaveConfig();
-          auto& config = m_ConfigManager->GetConfig();
-
-          if (j.contains("api_key"))
-            config.AudioApiKey = j["api_key"];
-          if (j.contains("voice_id"))
-            config.AudioVoiceId = j["voice_id"];
-          if (j.contains("audio_format"))
-            config.AudioFormat = j["audio_format"];
-
-          if (j.contains("available_voices")) {
-            config.AudioAvailableVoices.clear();
-            for (const auto& item : j["available_voices"]) {
-              if (item.is_array() && item.size() == 2) {
-                config.AudioAvailableVoices.push_back({item[0], item[1]});
-              }
-            }
-          }
-
+    // Vision Model
+    if (ImGui::BeginCombo("Vision Model", config.SelectedVisionModel.c_str())) {
+      // xAI Models
+      for (const auto& model : config.TextAvailableModels) {
+        std::string label = "xAI/" + model;
+        bool isSelected = (config.SelectedVisionModel == label);
+        if (ImGui::Selectable(label.c_str(), isSelected)) {
+          config.SelectedVisionModel = label;
           m_ConfigManager->Save();
         }
+        if (isSelected)
+          ImGui::SetItemDefaultFocus();
       }
+      // Google Models
+      for (const auto& model : config.GoogleAvailableModels) {
+        std::string label = "Google/" + model;
+        bool isSelected = (config.SelectedVisionModel == label);
+        if (ImGui::Selectable(label.c_str(), isSelected)) {
+          config.SelectedVisionModel = label;
+          m_ConfigManager->Save();
+        }
+        if (isSelected)
+          ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+
+    // Analysis Model
+    if (ImGui::BeginCombo("Analysis Model", config.SelectedAnalysisModel.c_str())) {
+      // xAI Models
+      for (const auto& model : config.TextAvailableModels) {
+        std::string label = "xAI/" + model;
+        bool isSelected = (config.SelectedAnalysisModel == label);
+        if (ImGui::Selectable(label.c_str(), isSelected)) {
+          config.SelectedAnalysisModel = label;
+          m_ConfigManager->Save();
+        }
+        if (isSelected)
+          ImGui::SetItemDefaultFocus();
+      }
+      // Google Models
+      for (const auto& model : config.GoogleAvailableModels) {
+        std::string label = "Google/" + model;
+        bool isSelected = (config.SelectedAnalysisModel == label);
+        if (ImGui::Selectable(label.c_str(), isSelected)) {
+          config.SelectedAnalysisModel = label;
+          m_ConfigManager->Save();
+        }
+        if (isSelected)
+          ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+
+    // Voice Model
+    std::string currentVoiceLabel = config.SelectedVoiceModel;
+    for (const auto& voice : config.AudioAvailableVoices) {
+      if ("ElevenLabs/" + voice.first == config.SelectedVoiceModel) {
+        currentVoiceLabel = "ElevenLabs/" + voice.second;
+        break;
+      }
+    }
+
+    if (ImGui::BeginCombo("Voice Model", currentVoiceLabel.c_str())) {
+      for (const auto& voice : config.AudioAvailableVoices) {
+        std::string label = "ElevenLabs/" + voice.second;
+        std::string value = "ElevenLabs/" + voice.first;
+        bool isSelected = (config.SelectedVoiceModel == value);
+        if (ImGui::Selectable(label.c_str(), isSelected)) {
+          config.SelectedVoiceModel = value;
+          config.AudioVoiceId = voice.first;
+          m_ConfigManager->Save();
+        }
+        if (isSelected)
+          ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+
+    // Audio Format
+    static const char* formats[] = {"MP3", "Opus"};
+    static const char* formatValues[] = {"mp3", "opus"};
+
+    int currentFormatIdx = 0;
+    if (config.AudioFormat == "opus") {
+      currentFormatIdx = 1;
+    }
+
+    if (ImGui::Combo("Audio Format", &currentFormatIdx, formats, IM_ARRAYSIZE(formats))) {
+      config.AudioFormat = formatValues[currentFormatIdx];
+      m_ConfigManager->Save();
     }
   }
 
