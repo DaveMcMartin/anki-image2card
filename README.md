@@ -142,19 +142,16 @@ This project is licensed under the GNU General Public License v3.0 (GPLv3). See 
 
 ## Planned Features
 
-This is a work in progress. Here are some planned features, it is not in priority order. My idea is for AI to be optional, the default is going to be local processing for everything.
+This is a work in progress. Here are some planned features, it is not in priority order. My idea is to move everything to local processing.
 
 - [ ] Github Action on release that generates binaries for Windows, macOS, and Linux.
 - [x] Add local OCR option with Tesseract with configurable text orientation
 - [x] Add support for multiple images
-- [ ] Get Vocab audio from real pronounciation
+- [ ] Replace AI with dictionary
+- [ ] Get Vocab audio from real pronounciation (Forvo, NHK)
 - [ ] Add Mecab and replace the analysis prompt
-- [ ] Add support for Ollama
-- [ ] Add support for OpenAI
-- [ ] Give user more control over AI configuration (prompts, etc)
-- [ ] Add custom auto-fill fields for the user
 - [ ] Add local audio generation
-- [ ] Switch from Tesseract to PaddleOCR
+- [ ] Switch from Tesseract to PaddleOCR (or other better OCR engine)
 
 ## Contributing
 
