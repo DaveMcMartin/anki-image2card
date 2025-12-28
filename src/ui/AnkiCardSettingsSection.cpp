@@ -390,7 +390,7 @@ namespace Image2Card::UI
 
         // Process binary data based on field type
         std::vector<unsigned char> processedData = binaryData;
-        
+
         if (field->GetType() == CardFieldType::Image) {
           // Compress image to WebP format, scaling to fit 320x320
           AF_INFO("Compressing image to WebP format (max 320x320)...");

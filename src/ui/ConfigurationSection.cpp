@@ -328,7 +328,7 @@ namespace Image2Card::UI
     if (isTesseract) {
       ImGui::Text("Tesseract is enabled.");
       ImGui::TextWrapped("Note: Text orientation can be set using the buttons in the Image section.");
-      
+
       ImGui::Spacing();
       ImGui::Separator();
       ImGui::Spacing();

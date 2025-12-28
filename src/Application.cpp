@@ -8,6 +8,7 @@
 #include <backends/imgui_impl_sdl3.h>
 #include <backends/imgui_impl_sdlrenderer3.h>
 #include <iostream>
+#include <string>
 
 #include "IconsFontAwesome6.h"
 #include "ai/ElevenLabsAudioProvider.h"
@@ -20,11 +21,11 @@
 #include "language/JapaneseLanguage.h"
 #include "ocr/TesseractOCRProvider.h"
 #include "stb_image.h"
-#include "utils/ImageProcessor.h"
 #include "ui/AnkiCardSettingsSection.h"
 #include "ui/ConfigurationSection.h"
 #include "ui/ImageSection.h"
 #include "ui/StatusSection.h"
+#include "utils/ImageProcessor.h"
 
 namespace Image2Card
 {
@@ -67,8 +68,7 @@ namespace Image2Card
 
     const char* base = SDL_GetBasePath();
     if (base) {
-      m_BasePath = base;
-      SDL_free((void*) base);
+      m_BasePath = std::string(base);
     } else {
       AF_ERROR("SDL_GetBasePath failed: {}", SDL_GetError());
     }
@@ -164,7 +164,6 @@ namespace Image2Card
     style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.00f, 0.00f, 1.00f, 0.35f);
     style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
 
-    // Setup Platform/Renderer backends
     ImGui_ImplSDL3_InitForSDLRenderer(m_Window, m_Renderer);
     ImGui_ImplSDLRenderer3_Init(m_Renderer);
 
@@ -194,9 +193,7 @@ namespace Image2Card
     }
     m_ConfigManager = std::make_unique<Config::ConfigManager>(configPath);
 
-    // Initialize language system
     m_Languages.push_back(std::make_unique<Language::JapaneseLanguage>());
-    // Set active language from config
     std::string selectedLang = m_ConfigManager->GetConfig().SelectedLanguage;
     for (auto& lang : m_Languages) {
       if (lang->GetIdentifier() == selectedLang) {
@@ -204,18 +201,13 @@ namespace Image2Card
         break;
       }
     }
-    // Default to first language if not found
     if (!m_ActiveLanguage && !m_Languages.empty()) {
       m_ActiveLanguage = m_Languages[0].get();
     }
 
-    // Initialize text AI providers
     m_TextAIProviders.push_back(std::make_unique<AI::GoogleTextProvider>());
     m_TextAIProviders.push_back(std::make_unique<AI::XAiTextProvider>());
 
-
-
-    // Load provider configs
     for (auto& provider : m_TextAIProviders) {
       nlohmann::json providerConfig;
       if (provider->GetId() == "xai") {
@@ -228,26 +220,16 @@ namespace Image2Card
       provider->LoadConfig(providerConfig);
     }
 
-    // Initialize defaults for selected models if empty
     auto& config = m_ConfigManager->GetConfig();
-    if (config.SelectedVisionModel.empty()) {
-      config.SelectedVisionModel = "xAI/grok-2-vision-1212";
-    }
-    if (config.SelectedAnalysisModel.empty()) {
-      config.SelectedAnalysisModel = "xAI/grok-2-1212";
-    }
-
     m_AudioAIProvider = std::make_unique<AI::ElevenLabsAudioProvider>();
 
-    // Initialize Tesseract OCR
     m_TesseractOCRProvider = std::make_unique<OCR::TesseractOCRProvider>();
     std::string tessDataPath = m_BasePath + "tessdata";
-    std::string tessLanguage = "jpn"; // Default to Japanese
+    std::string tessLanguage = "jpn";
     if (!m_TesseractOCRProvider->Initialize(tessDataPath, tessLanguage)) {
       AF_WARN("Failed to initialize Tesseract OCR. AI OCR will be used as fallback.");
     }
 
-    // Load audio provider config
     {
       nlohmann::json audioConfig;
       audioConfig["api_key"] = m_ConfigManager->GetConfig().AudioApiKey;
@@ -264,8 +246,7 @@ namespace Image2Card
     }
 
     if (m_ConfigManager->GetConfig().SelectedVoiceModel.empty()) {
-      m_ConfigManager->GetConfig().SelectedVoiceModel =
-          "ElevenLabs/" + m_ConfigManager->GetConfig().AudioVoiceId;
+      m_ConfigManager->GetConfig().SelectedVoiceModel = "ElevenLabs/" + m_ConfigManager->GetConfig().AudioVoiceId;
     }
 
     std::string ankiUrl = m_ConfigManager->GetConfig().AnkiConnectUrl;
@@ -564,19 +545,15 @@ namespace Image2Card
       return;
     }
 
-    // Mark scanning as in progress
     m_IsScanning.store(true);
     m_OCRComplete = false;
 
-    // Launch OCR task in background thread
     AF_INFO("Launching async OCR task...");
     if (m_StatusSection)
       m_StatusSection->SetProgress(0.0f);
 
-    // Keep a copy of image bytes for UI field population
     std::vector<unsigned char> scanImage = imageBytes;
 
-    // Check OCR method from config
     auto& config = m_ConfigManager->GetConfig();
     std::string ocrMethod = config.OCRMethod;
     std::string tesseractOrientation = m_ImageSection->GetTesseractOrientation();
@@ -584,68 +561,67 @@ namespace Image2Card
 
     AsyncTask task;
     task.description = "OCR Image Processing";
-    task.future = std::async(std::launch::async, [this, imageBytes = std::move(imageBytes), ocrMethod, tesseractOrientation, selectedVisionModel]() {
-      try {
-        if (m_CancelRequested.load()) {
-          AF_INFO("OCR task cancelled before starting.");
-          return;
-        }
+    task.future = std::async(
+        std::launch::async,
+        [this, imageBytes = std::move(imageBytes), ocrMethod, tesseractOrientation, selectedVisionModel]() {
+          try {
+            if (m_CancelRequested.load()) {
+              AF_INFO("OCR task cancelled before starting.");
+              return;
+            }
 
-        std::string text;
+            std::string text;
 
-        if (ocrMethod == "Tesseract" && m_TesseractOCRProvider && m_TesseractOCRProvider->IsInitialized()) {
-          AF_INFO("Using Tesseract OCR with orientation: {}", tesseractOrientation);
-          
-          // Set orientation based on config
-          if (tesseractOrientation == "vertical") {
-            m_TesseractOCRProvider->SetOrientation(OCR::TesseractOrientation::Vertical);
-          } else {
-            m_TesseractOCRProvider->SetOrientation(OCR::TesseractOrientation::Horizontal);
+            if (ocrMethod == "Tesseract" && m_TesseractOCRProvider && m_TesseractOCRProvider->IsInitialized()) {
+              AF_INFO("Using Tesseract OCR with orientation: {}", tesseractOrientation);
+
+              if (tesseractOrientation == "vertical") {
+                m_TesseractOCRProvider->SetOrientation(OCR::TesseractOrientation::Vertical);
+              } else {
+                m_TesseractOCRProvider->SetOrientation(OCR::TesseractOrientation::Horizontal);
+              }
+
+              text = m_TesseractOCRProvider->ExtractTextFromImage(imageBytes);
+            } else {
+              AF_INFO("Sending image to Text AI Provider for OCR...");
+              auto* provider = GetTextProviderForModel(selectedVisionModel);
+              if (!provider) {
+                throw std::runtime_error("No Text AI Provider found for selected vision model.");
+              }
+
+              std::string modelName = selectedVisionModel;
+              size_t slashPos = modelName.find('/');
+              if (slashPos != std::string::npos) {
+                modelName = modelName.substr(slashPos + 1);
+              }
+              nlohmann::json config;
+              config["vision_model"] = modelName;
+              provider->LoadConfig(config);
+
+              text = provider->ExtractTextFromImage(imageBytes, "image/png", m_ActiveLanguage);
+            }
+
+            if (m_ActiveLanguage) {
+              text = m_ActiveLanguage->PostProcessOCR(text);
+            }
+
+            AF_INFO("OCR Result: {}", text);
+
+            {
+              std::lock_guard<std::mutex> lock(m_ResultMutex);
+              m_OCRResult = std::move(text);
+              m_OCRComplete = true;
+            }
+          } catch (const std::exception& e) {
+            AF_ERROR("OCR task failed with exception: {}", e.what());
+            std::lock_guard<std::mutex> lock(m_ResultMutex);
+            m_LastError = std::string("OCR failed: ") + e.what();
+          } catch (...) {
+            AF_ERROR("OCR task failed with unknown exception.");
+            std::lock_guard<std::mutex> lock(m_ResultMutex);
+            m_LastError = "OCR failed with unknown error.";
           }
-
-          text = m_TesseractOCRProvider->ExtractTextFromImage(imageBytes);
-        } else {
-          AF_INFO("Sending image to Text AI Provider for OCR...");
-          auto* provider = GetTextProviderForModel(selectedVisionModel);
-          if (!provider) {
-            throw std::runtime_error("No Text AI Provider found for selected vision model.");
-          }
-
-          // Update provider with selected model
-          std::string modelName = selectedVisionModel;
-          size_t slashPos = modelName.find('/');
-          if (slashPos != std::string::npos) {
-            modelName = modelName.substr(slashPos + 1);
-          }
-          nlohmann::json config;
-          config["vision_model"] = modelName;
-          provider->LoadConfig(config);
-
-          text = provider->ExtractTextFromImage(imageBytes, "image/png", m_ActiveLanguage);
-        }
-
-        if (m_ActiveLanguage) {
-          text = m_ActiveLanguage->PostProcessOCR(text);
-        }
-
-        AF_INFO("OCR Result: {}", text);
-
-        // Store result in thread-safe manner
-        {
-          std::lock_guard<std::mutex> lock(m_ResultMutex);
-          m_OCRResult = std::move(text);
-          m_OCRComplete = true;
-        }
-      } catch (const std::exception& e) {
-        AF_ERROR("OCR task failed with exception: {}", e.what());
-        std::lock_guard<std::mutex> lock(m_ResultMutex);
-        m_LastError = std::string("OCR failed: ") + e.what();
-      } catch (...) {
-        AF_ERROR("OCR task failed with unknown exception.");
-        std::lock_guard<std::mutex> lock(m_ResultMutex);
-        m_LastError = "OCR failed with unknown error.";
-      }
-    });
+        });
 
     task.onComplete = [this, scanImage = std::move(scanImage)]() {
       m_IsScanning.store(false);
@@ -674,11 +650,9 @@ namespace Image2Card
         return;
       }
 
-      // Prepare scan modal
       m_ScanSentence = ocrResult;
       m_ScanTargetWord = "";
 
-      // Set voice from config
       m_ScanVoice = m_ConfigManager->GetConfig().AudioVoiceId;
 
       m_ScanSentence.reserve(256);
@@ -689,9 +663,7 @@ namespace Image2Card
         m_StatusSection->SetStatus("Scan complete.");
       AF_INFO("Scan complete.");
 
-      // Auto-fill Image field
       if (m_AnkiCardSettingsSection) {
-        // 7: Image
         m_AnkiCardSettingsSection->SetFieldByTool(7, scanImage, "image.png");
       }
 
@@ -708,7 +680,6 @@ namespace Image2Card
       AF_ERROR("Scan error: {}", error);
     };
 
-    // Add task to queue
     {
       std::lock_guard<std::mutex> lock(m_TaskMutex);
       m_ActiveTasks.push(std::move(task));
@@ -723,6 +694,8 @@ namespace Image2Card
     }
 
     if (ImGui::BeginPopupModal("Scan Result", &m_ShowScanModal, ImGuiWindowFlags_AlwaysAutoResize)) {
+      ImGui::PushItemWidth(400.0f);
+
       auto InputText = [](const char* label, std::string* str) {
         auto callback = [](ImGuiInputTextCallbackData* data) {
           if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
@@ -736,27 +709,42 @@ namespace Image2Card
         return ImGui::InputText(
             label, (char*) str->data(), str->capacity() + 1, ImGuiInputTextFlags_CallbackResize, callback, (void*) str);
       };
+      auto InputTextMultiline = [](const char* label, std::string* str) {
+        auto callback = [](ImGuiInputTextCallbackData* data) {
+          if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+            std::string* s = (std::string*) data->UserData;
+            IM_ASSERT(data->Buf == s->c_str());
+            s->resize(data->BufTextLen);
+            data->Buf = (char*) s->data();
+          }
+          return 0;
+        };
+        return ImGui::InputTextMultiline(label,
+                                         (char*) str->data(),
+                                         str->capacity() + 1,
+                                         ImVec2(0, 120),
+                                         ImGuiInputTextFlags_CallbackResize,
+                                         callback,
+                                         (void*) str);
+      };
 
-      InputText("Sentence", &m_ScanSentence);
+      InputTextMultiline("Sentence", &m_ScanSentence);
       InputText("Target Word", &m_ScanTargetWord);
 
-      // Use shared voice selector from audio provider
       if (m_AudioAIProvider) {
         if (m_AudioAIProvider->RenderVoiceSelector("Voice", &m_ScanVoice)) {
-          // Also update the audio provider's voice setting
           m_AudioAIProvider->SetVoiceId(m_ScanVoice);
         }
       }
 
+      ImGui::PopItemWidth();
       ImGui::Separator();
 
-      // Disable Process button if already processing
       bool isProcessing = m_IsProcessing.load();
       if (isProcessing) {
         ImGui::BeginDisabled();
       }
 
-      // Green tint for Process button
       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.60f, 0.20f, 1.0f));
       ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.75f, 0.25f, 1.0f));
       ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.50f, 0.15f, 1.0f));
@@ -777,7 +765,6 @@ namespace Image2Card
         ImGui::SetItemDefaultFocus();
         ImGui::SameLine();
 
-        // Red tint for Cancel button
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.60f, 0.20f, 0.20f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.75f, 0.25f, 0.25f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.50f, 0.15f, 0.15f, 1.0f));
@@ -835,134 +822,135 @@ namespace Image2Card
 
     AsyncTask task;
     task.description = "Scan Processing";
-    task.future = std::async(std::launch::async, [this, sentence, targetWord, voice, fullImage, languageCode, selectedAnalysisModel]() {
-      try {
-        if (m_CancelRequested.load()) {
-          AF_INFO("Processing task cancelled before starting.");
-          return;
-        }
-        AF_INFO("Analyzing sentence...");
-        AF_DEBUG("Sentence: '{}', Target Word: '{}'", sentence, targetWord);
-        
-        auto* provider = GetTextProviderForModel(selectedAnalysisModel);
-        if (!provider) {
-          throw std::runtime_error("No Text AI Provider found for selected analysis model.");
-        }
-
-        // Update provider with selected model
-        std::string modelName = selectedAnalysisModel;
-        size_t slashPos = modelName.find('/');
-        if (slashPos != std::string::npos) {
-          modelName = modelName.substr(slashPos + 1);
-        }
-        nlohmann::json config;
-        config["sentence_model"] = modelName;
-        provider->LoadConfig(config);
-
-        nlohmann::json analysis = provider->AnalyzeSentence(sentence, targetWord, m_ActiveLanguage);
-
-        if (m_CancelRequested.load()) {
-          AF_INFO("Processing task cancelled after analysis.");
-          return;
-        }
-
-        AF_DEBUG("Analysis Response: {}", analysis.dump());
-        if (analysis.is_null()) {
-          AF_ERROR("Analysis returned null/empty response");
-          throw std::runtime_error("Text analysis failed.");
-        }
-
-        if (m_StatusSection)
-          m_StatusSection->SetProgress(0.4f);
-
-        AF_INFO("Analysis Result: {}", analysis.dump());
-
-        std::string analyzedSentence = analysis.value("sentence", "");
-        std::string translation = analysis.value("translation", "");
-        std::string analyzedTargetWord = analysis.value("target_word", "");
-        std::string targetWordFurigana = analysis.value("target_word_furigana", "");
-        std::string furigana = analysis.value("furigana", "");
-        std::string definition = analysis.value("definition", "");
-        std::string pitch = analysis.value("pitch_accent", "");
-
-        auto updateFields = [this,
-                             analyzedSentence,
-                             translation,
-                             analyzedTargetWord,
-                             targetWordFurigana,
-                             furigana,
-                             definition,
-                             pitch,
-                             fullImage]() {
-          if (m_AnkiCardSettingsSection) {
-            AF_INFO("Setting fields in Anki Card Settings...");
-            m_AnkiCardSettingsSection->SetFieldByTool(0, analyzedSentence);
-            m_AnkiCardSettingsSection->SetFieldByTool(1, furigana);
-            m_AnkiCardSettingsSection->SetFieldByTool(2, translation);
-            m_AnkiCardSettingsSection->SetFieldByTool(3, analyzedTargetWord);
-            m_AnkiCardSettingsSection->SetFieldByTool(4, targetWordFurigana);
-            m_AnkiCardSettingsSection->SetFieldByTool(5, pitch);
-            m_AnkiCardSettingsSection->SetFieldByTool(6, definition);
-            if (!fullImage.empty()) {
-              m_AnkiCardSettingsSection->SetFieldByTool(7, fullImage, "image.png");
+    task.future = std::async(
+        std::launch::async, [this, sentence, targetWord, voice, fullImage, languageCode, selectedAnalysisModel]() {
+          try {
+            if (m_CancelRequested.load()) {
+              AF_INFO("Processing task cancelled before starting.");
+              return;
             }
-          } else {
-            AF_WARN("AnkiCardSettingsSection is null, cannot set fields.");
+            AF_INFO("Analyzing sentence...");
+            AF_DEBUG("Sentence: '{}', Target Word: '{}'", sentence, targetWord);
+
+            auto* provider = GetTextProviderForModel(selectedAnalysisModel);
+            if (!provider) {
+              throw std::runtime_error("No Text AI Provider found for selected analysis model.");
+            }
+
+            // Update provider with selected model
+            std::string modelName = selectedAnalysisModel;
+            size_t slashPos = modelName.find('/');
+            if (slashPos != std::string::npos) {
+              modelName = modelName.substr(slashPos + 1);
+            }
+            nlohmann::json config;
+            config["sentence_model"] = modelName;
+            provider->LoadConfig(config);
+
+            nlohmann::json analysis = provider->AnalyzeSentence(sentence, targetWord, m_ActiveLanguage);
+
+            if (m_CancelRequested.load()) {
+              AF_INFO("Processing task cancelled after analysis.");
+              return;
+            }
+
+            AF_DEBUG("Analysis Response: {}", analysis.dump());
+            if (analysis.is_null()) {
+              AF_ERROR("Analysis returned null/empty response");
+              throw std::runtime_error("Text analysis failed.");
+            }
+
+            if (m_StatusSection)
+              m_StatusSection->SetProgress(0.4f);
+
+            AF_INFO("Analysis Result: {}", analysis.dump());
+
+            std::string analyzedSentence = analysis.value("sentence", "");
+            std::string translation = analysis.value("translation", "");
+            std::string analyzedTargetWord = analysis.value("target_word", "");
+            std::string targetWordFurigana = analysis.value("target_word_furigana", "");
+            std::string furigana = analysis.value("furigana", "");
+            std::string definition = analysis.value("definition", "");
+            std::string pitch = analysis.value("pitch_accent", "");
+
+            auto updateFields = [this,
+                                 analyzedSentence,
+                                 translation,
+                                 analyzedTargetWord,
+                                 targetWordFurigana,
+                                 furigana,
+                                 definition,
+                                 pitch,
+                                 fullImage]() {
+              if (m_AnkiCardSettingsSection) {
+                AF_INFO("Setting fields in Anki Card Settings...");
+                m_AnkiCardSettingsSection->SetFieldByTool(0, analyzedSentence);
+                m_AnkiCardSettingsSection->SetFieldByTool(1, furigana);
+                m_AnkiCardSettingsSection->SetFieldByTool(2, translation);
+                m_AnkiCardSettingsSection->SetFieldByTool(3, analyzedTargetWord);
+                m_AnkiCardSettingsSection->SetFieldByTool(4, targetWordFurigana);
+                m_AnkiCardSettingsSection->SetFieldByTool(5, pitch);
+                m_AnkiCardSettingsSection->SetFieldByTool(6, definition);
+                if (!fullImage.empty()) {
+                  m_AnkiCardSettingsSection->SetFieldByTool(7, fullImage, "image.png");
+                }
+              } else {
+                AF_WARN("AnkiCardSettingsSection is null, cannot set fields.");
+              }
+            };
+
+            updateFields();
+            if (!analyzedTargetWord.empty() && !m_CancelRequested.load()) {
+              if (m_StatusSection)
+                m_StatusSection->SetProgress(0.6f);
+              AF_INFO("Generating Vocab Audio for: {}", analyzedTargetWord);
+              if (m_StatusSection)
+                m_StatusSection->SetStatus("Generating Vocab Audio...");
+
+              std::string audioFormat = m_ConfigManager->GetConfig().AudioFormat;
+              std::vector<unsigned char> vocabAudio =
+                  m_AudioAIProvider->GenerateAudio(analyzedTargetWord, voice, languageCode, audioFormat);
+              AF_INFO("Vocab Audio generated, size: {} bytes", vocabAudio.size());
+
+              if (m_AnkiCardSettingsSection && !vocabAudio.empty()) {
+                // 8: Vocab Audio
+                std::string audioExt = (audioFormat == "opus") ? "opus" : "mp3";
+                m_AnkiCardSettingsSection->SetFieldByTool(8, vocabAudio, "vocab." + audioExt);
+              }
+            }
+
+            if (!analyzedSentence.empty() && !m_CancelRequested.load()) {
+              if (m_StatusSection)
+                m_StatusSection->SetProgress(0.8f);
+              AF_INFO("Generating Sentence Audio for: {}", analyzedSentence);
+              if (m_StatusSection)
+                m_StatusSection->SetStatus("Generating Sentence Audio...");
+
+              std::string audioFormat = m_ConfigManager->GetConfig().AudioFormat;
+              std::vector<unsigned char> sentenceAudio =
+                  m_AudioAIProvider->GenerateAudio(analyzedSentence, voice, languageCode, audioFormat);
+              AF_INFO("Sentence Audio generated, size: {} bytes", sentenceAudio.size());
+
+              if (m_AnkiCardSettingsSection && !sentenceAudio.empty()) {
+                // 9: Sentence Audio
+                std::string audioExt = (audioFormat == "opus") ? "opus" : "mp3";
+                m_AnkiCardSettingsSection->SetFieldByTool(9, sentenceAudio, "sentence." + audioExt);
+              }
+            }
+
+            if (m_StatusSection)
+              m_StatusSection->SetProgress(1.0f);
+            AF_INFO("Processing complete.");
+          } catch (const std::exception& e) {
+            AF_ERROR("Processing task failed with exception: {}", e.what());
+            std::lock_guard<std::mutex> lock(m_ResultMutex);
+            m_LastError = std::string("Processing failed: ") + e.what();
+          } catch (...) {
+            AF_ERROR("Processing task failed with unknown exception.");
+            std::lock_guard<std::mutex> lock(m_ResultMutex);
+            m_LastError = "Processing failed with unknown error.";
           }
-        };
-
-        updateFields();
-        if (!analyzedTargetWord.empty() && !m_CancelRequested.load()) {
-          if (m_StatusSection)
-            m_StatusSection->SetProgress(0.6f);
-          AF_INFO("Generating Vocab Audio for: {}", analyzedTargetWord);
-          if (m_StatusSection)
-            m_StatusSection->SetStatus("Generating Vocab Audio...");
-
-          std::string audioFormat = m_ConfigManager->GetConfig().AudioFormat;
-          std::vector<unsigned char> vocabAudio =
-              m_AudioAIProvider->GenerateAudio(analyzedTargetWord, voice, languageCode, audioFormat);
-          AF_INFO("Vocab Audio generated, size: {} bytes", vocabAudio.size());
-
-          if (m_AnkiCardSettingsSection && !vocabAudio.empty()) {
-            // 8: Vocab Audio
-            std::string audioExt = (audioFormat == "opus") ? "opus" : "mp3";
-            m_AnkiCardSettingsSection->SetFieldByTool(8, vocabAudio, "vocab." + audioExt);
-          }
-        }
-
-        if (!analyzedSentence.empty() && !m_CancelRequested.load()) {
-          if (m_StatusSection)
-            m_StatusSection->SetProgress(0.8f);
-          AF_INFO("Generating Sentence Audio for: {}", analyzedSentence);
-          if (m_StatusSection)
-            m_StatusSection->SetStatus("Generating Sentence Audio...");
-
-          std::string audioFormat = m_ConfigManager->GetConfig().AudioFormat;
-          std::vector<unsigned char> sentenceAudio =
-              m_AudioAIProvider->GenerateAudio(analyzedSentence, voice, languageCode, audioFormat);
-          AF_INFO("Sentence Audio generated, size: {} bytes", sentenceAudio.size());
-
-          if (m_AnkiCardSettingsSection && !sentenceAudio.empty()) {
-            // 9: Sentence Audio
-            std::string audioExt = (audioFormat == "opus") ? "opus" : "mp3";
-            m_AnkiCardSettingsSection->SetFieldByTool(9, sentenceAudio, "sentence." + audioExt);
-          }
-        }
-
-        if (m_StatusSection)
-          m_StatusSection->SetProgress(1.0f);
-        AF_INFO("Processing complete.");
-      } catch (const std::exception& e) {
-        AF_ERROR("Processing task failed with exception: {}", e.what());
-        std::lock_guard<std::mutex> lock(m_ResultMutex);
-        m_LastError = std::string("Processing failed: ") + e.what();
-      } catch (...) {
-        AF_ERROR("Processing task failed with unknown exception.");
-        std::lock_guard<std::mutex> lock(m_ResultMutex);
-        m_LastError = "Processing failed with unknown error.";
-      }
-    });
+        });
 
     task.onComplete = [this]() {
       m_IsProcessing.store(false);

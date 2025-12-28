@@ -52,8 +52,6 @@ namespace Image2Card::AI
       ImGui::Text("%s", m_StatusMessage.c_str());
     }
 
-
-
     return changed;
   }
 

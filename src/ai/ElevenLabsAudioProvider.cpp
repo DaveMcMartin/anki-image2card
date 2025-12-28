@@ -43,8 +43,6 @@ namespace Image2Card::AI
       ImGui::Text("%s", m_StatusMessage.c_str());
     }
 
-
-
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::Spacing();
@@ -52,7 +50,7 @@ namespace Image2Card::AI
     ImGui::Text("Audio Format:");
     static const char* formats[] = {"MP3", "Opus"};
     static const char* formatValues[] = {"mp3", "opus"};
-    
+
     int currentFormatIdx = 0;
     if (m_AudioFormat == "opus") {
       currentFormatIdx = 1;
@@ -124,7 +122,10 @@ namespace Image2Card::AI
       voicesJson.push_back({voice.Id, voice.Name});
     }
 
-    return {{"api_key", m_ApiKey}, {"voice_id", m_VoiceId}, {"audio_format", m_AudioFormat}, {"available_voices", voicesJson}};
+    return {{"api_key", m_ApiKey},
+            {"voice_id", m_VoiceId},
+            {"audio_format", m_AudioFormat},
+            {"available_voices", voicesJson}};
   }
 
   void ElevenLabsAudioProvider::LoadRemoteVoices()

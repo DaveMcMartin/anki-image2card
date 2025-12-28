@@ -1,6 +1,8 @@
 #include "config/ConfigManager.h"
+
 #include <fstream>
 #include <iostream>
+
 #include "core/Logger.h"
 
 namespace Image2Card::Config
@@ -12,90 +14,97 @@ namespace Image2Card::Config
     Load();
   }
 
-void ConfigManager::Load()
-{
+  void ConfigManager::Load()
+  {
     std::ifstream file(m_ConfigPath);
-    if (!file.is_open())
-    {
-        return;
+    if (!file.is_open()) {
+      return;
     }
 
-    try
-    {
-        nlohmann::json j;
-        file >> j;
+    try {
+      nlohmann::json j;
+      file >> j;
 
-        if (j.contains("anki_connect_url")) m_Config.AnkiConnectUrl = j["anki_connect_url"];
-        if (j.contains("anki_decks")) m_Config.AnkiDecks = j["anki_decks"].get<std::vector<std::string>>();
-        if (j.contains("anki_note_types")) m_Config.AnkiNoteTypes = j["anki_note_types"].get<std::vector<std::string>>();
+      if (j.contains("anki_connect_url"))
+        m_Config.AnkiConnectUrl = j["anki_connect_url"];
+      if (j.contains("anki_decks"))
+        m_Config.AnkiDecks = j["anki_decks"].get<std::vector<std::string>>();
+      if (j.contains("anki_note_types"))
+        m_Config.AnkiNoteTypes = j["anki_note_types"].get<std::vector<std::string>>();
 
-        if (j.contains("selected_language")) m_Config.SelectedLanguage = j["selected_language"];
+      if (j.contains("selected_language"))
+        m_Config.SelectedLanguage = j["selected_language"];
 
-        if (j.contains("selected_vision_model")) m_Config.SelectedVisionModel = j["selected_vision_model"];
-        if (j.contains("selected_analysis_model")) m_Config.SelectedAnalysisModel = j["selected_analysis_model"];
-        if (j.contains("selected_voice_model")) m_Config.SelectedVoiceModel = j["selected_voice_model"];
+      if (j.contains("selected_vision_model"))
+        m_Config.SelectedVisionModel = j["selected_vision_model"];
+      if (j.contains("selected_analysis_model"))
+        m_Config.SelectedAnalysisModel = j["selected_analysis_model"];
+      if (j.contains("selected_voice_model"))
+        m_Config.SelectedVoiceModel = j["selected_voice_model"];
 
-        if (j.contains("text_api_key")) m_Config.TextApiKey = j["text_api_key"];
-        if (j.contains("text_available_models")) m_Config.TextAvailableModels = j["text_available_models"].get<std::vector<std::string>>();
+      if (j.contains("text_api_key"))
+        m_Config.TextApiKey = j["text_api_key"];
+      if (j.contains("text_available_models"))
+        m_Config.TextAvailableModels = j["text_available_models"].get<std::vector<std::string>>();
 
-        if (j.contains("google_api_key")) m_Config.GoogleApiKey = j["google_api_key"];
-        if (j.contains("google_available_models")) m_Config.GoogleAvailableModels = j["google_available_models"].get<std::vector<std::string>>();
-        
-        // Migration: Convert old google_vision_model/google_sentence_model to new format
-        if (j.contains("google_vision_model") && m_Config.SelectedVisionModel.empty()) {
-            m_Config.SelectedVisionModel = "Google/" + j["google_vision_model"].get<std::string>();
+      if (j.contains("google_api_key"))
+        m_Config.GoogleApiKey = j["google_api_key"];
+      if (j.contains("google_available_models"))
+        m_Config.GoogleAvailableModels = j["google_available_models"].get<std::vector<std::string>>();
+
+      // Migration: Convert old google_vision_model/google_sentence_model to new format
+      if (j.contains("google_vision_model") && m_Config.SelectedVisionModel.empty()) {
+        m_Config.SelectedVisionModel = "Google/" + j["google_vision_model"].get<std::string>();
+      }
+      if (j.contains("google_sentence_model") && m_Config.SelectedAnalysisModel.empty()) {
+        m_Config.SelectedAnalysisModel = "Google/" + j["google_sentence_model"].get<std::string>();
+      }
+      if (j.contains("google_model") && m_Config.SelectedVisionModel.empty()) {
+        m_Config.SelectedVisionModel = "Google/" + j["google_model"].get<std::string>();
+      }
+      if (j.contains("audio_api_key"))
+        m_Config.AudioApiKey = j["audio_api_key"];
+      if (j.contains("audio_voice_id"))
+        m_Config.AudioVoiceId = j["audio_voice_id"];
+      if (j.contains("audio_available_voices")) {
+        m_Config.AudioAvailableVoices.clear();
+        for (const auto& item : j["audio_available_voices"]) {
+          if (item.is_array() && item.size() == 2) {
+            m_Config.AudioAvailableVoices.push_back({item[0], item[1]});
+          }
         }
-        if (j.contains("google_sentence_model") && m_Config.SelectedAnalysisModel.empty()) {
-            m_Config.SelectedAnalysisModel = "Google/" + j["google_sentence_model"].get<std::string>();
-        }
-        if (j.contains("google_model") && m_Config.SelectedVisionModel.empty()) {
-            m_Config.SelectedVisionModel = "Google/" + j["google_model"].get<std::string>();
-        }
-        if (j.contains("audio_api_key")) m_Config.AudioApiKey = j["audio_api_key"];
-        if (j.contains("audio_voice_id")) m_Config.AudioVoiceId = j["audio_voice_id"];
-        if (j.contains("audio_available_voices"))
-        {
-            m_Config.AudioAvailableVoices.clear();
-            for (const auto& item : j["audio_available_voices"])
-            {
-                if (item.is_array() && item.size() == 2)
-                {
-                    m_Config.AudioAvailableVoices.push_back({item[0], item[1]});
-                }
+      }
+
+      if (j.contains("ocr_method"))
+        m_Config.OCRMethod = j["ocr_method"];
+      if (j.contains("tesseract_orientation"))
+        m_Config.TesseractOrientation = j["tesseract_orientation"];
+
+      if (j.contains("audio_format"))
+        m_Config.AudioFormat = j["audio_format"];
+
+      if (j.contains("last_note_type"))
+        m_Config.LastNoteType = j["last_note_type"];
+      if (j.contains("last_deck"))
+        m_Config.LastDeck = j["last_deck"];
+
+      if (j.contains("field_mappings")) {
+        m_Config.FieldMappings.clear();
+        for (auto& [noteType, fields] : j["field_mappings"].items()) {
+          for (auto& [fieldName, settings] : fields.items()) {
+            if (settings.is_array() && settings.size() == 2) {
+              m_Config.FieldMappings[noteType][fieldName] = {settings[0], settings[1]};
             }
+          }
         }
-
-        if (j.contains("ocr_method")) m_Config.OCRMethod = j["ocr_method"];
-        if (j.contains("tesseract_orientation")) m_Config.TesseractOrientation = j["tesseract_orientation"];
-
-        if (j.contains("audio_format")) m_Config.AudioFormat = j["audio_format"];
-
-        if (j.contains("last_note_type")) m_Config.LastNoteType = j["last_note_type"];
-        if (j.contains("last_deck")) m_Config.LastDeck = j["last_deck"];
-
-        if (j.contains("field_mappings"))
-        {
-            m_Config.FieldMappings.clear();
-            for (auto& [noteType, fields] : j["field_mappings"].items())
-            {
-                for (auto& [fieldName, settings] : fields.items())
-                {
-                    if (settings.is_array() && settings.size() == 2)
-                    {
-                        m_Config.FieldMappings[noteType][fieldName] = {settings[0], settings[1]};
-                    }
-                }
-            }
-        }
+      }
+    } catch (const std::exception& e) {
+      AF_ERROR("Error loading config: {}", e.what());
     }
-    catch (const std::exception& e)
-    {
-        AF_ERROR("Error loading config: {}", e.what());
-    }
-}
+  }
 
-void ConfigManager::Save()
-{
+  void ConfigManager::Save()
+  {
     nlohmann::json j;
 
     j["anki_connect_url"] = m_Config.AnkiConnectUrl;
@@ -117,9 +126,8 @@ void ConfigManager::Save()
     j["audio_voice_id"] = m_Config.AudioVoiceId;
 
     nlohmann::json voicesJson = nlohmann::json::array();
-    for (const auto& voice : m_Config.AudioAvailableVoices)
-    {
-        voicesJson.push_back({voice.first, voice.second});
+    for (const auto& voice : m_Config.AudioAvailableVoices) {
+      voicesJson.push_back({voice.first, voice.second});
     }
     j["audio_available_voices"] = voicesJson;
 
@@ -132,29 +140,24 @@ void ConfigManager::Save()
     j["last_deck"] = m_Config.LastDeck;
 
     nlohmann::json mappingsJson;
-    for (const auto& [noteType, fields] : m_Config.FieldMappings)
-    {
-        for (const auto& [fieldName, settings] : fields)
-        {
-            mappingsJson[noteType][fieldName] = {settings.first, settings.second};
-        }
+    for (const auto& [noteType, fields] : m_Config.FieldMappings) {
+      for (const auto& [fieldName, settings] : fields) {
+        mappingsJson[noteType][fieldName] = {settings.first, settings.second};
+      }
     }
     j["field_mappings"] = mappingsJson;
 
     std::ofstream file(m_ConfigPath);
-    if (file.is_open())
-    {
-        file << j.dump(4);
+    if (file.is_open()) {
+      file << j.dump(4);
+    } else {
+      AF_ERROR("Error saving config to {}", m_ConfigPath);
     }
-    else
-    {
-        AF_ERROR("Error saving config to {}", m_ConfigPath);
-    }
-}
+  }
 
-AppConfig& ConfigManager::GetConfig()
-{
+  AppConfig& ConfigManager::GetConfig()
+  {
     return m_Config;
-}
+  }
 
 } // namespace Image2Card::Config

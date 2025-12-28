@@ -1,9 +1,8 @@
 #include "ocr/TesseractOCRProvider.h"
 
 #include <allheaders.h>
-#include <tesseract/baseapi.h>
-
 #include <cstring>
+#include <tesseract/baseapi.h>
 
 #include "core/Logger.h"
 
@@ -14,8 +13,7 @@ namespace Image2Card::OCR
       : m_TessAPI(std::make_unique<tesseract::TessBaseAPI>())
       , m_IsInitialized(false)
       , m_Orientation(TesseractOrientation::Horizontal)
-  {
-  }
+  {}
 
   TesseractOCRProvider::~TesseractOCRProvider()
   {
@@ -40,7 +38,7 @@ namespace Image2Card::OCR
 
     m_IsInitialized = true;
     AF_INFO("Tesseract initialized successfully with language: {}", language);
-    
+
     return true;
   }
 

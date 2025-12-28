@@ -23,7 +23,7 @@ namespace Image2Card::OCR
 
   class TesseractOCRProvider
   {
-  public:
+public:
 
     TesseractOCRProvider();
     ~TesseractOCRProvider();
@@ -40,7 +40,7 @@ namespace Image2Card::OCR
 
     bool IsInitialized() const { return m_IsInitialized; }
 
-  private:
+private:
 
     std::unique_ptr<tesseract::TessBaseAPI> m_TessAPI;
     bool m_IsInitialized;

@@ -52,8 +52,6 @@ namespace Image2Card::AI
       ImGui::Text("%s", m_StatusMessage.c_str());
     }
 
-
-
     return changed;
   }
 
@@ -198,8 +196,7 @@ namespace Image2Card::AI
         }
       }
       AF_DEBUG("Sending Google OCR Request: {}", debugPayload.dump(2));
-    } catch (...) {
-    }
+    } catch (...) {}
 #endif
 
     std::string endpoint = "/v1beta/models/" + m_VisionModel + ":generateContent";
