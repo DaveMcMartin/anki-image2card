@@ -45,21 +45,6 @@ namespace Image2Card::AI
 
     ImGui::Spacing();
     ImGui::Separator();
-    ImGui::Spacing();
-
-    ImGui::Text("Audio Format:");
-    static const char* formats[] = {"MP3", "Opus"};
-    static const char* formatValues[] = {"mp3", "opus"};
-
-    int currentFormatIdx = 0;
-    if (m_AudioFormat == "opus") {
-      currentFormatIdx = 1;
-    }
-
-    if (ImGui::Combo("##audio_format", &currentFormatIdx, formats, IM_ARRAYSIZE(formats))) {
-      m_AudioFormat = formatValues[currentFormatIdx];
-      changed = true;
-    }
 
     return changed;
   }
@@ -73,7 +58,6 @@ namespace Image2Card::AI
 
     std::string currentVoiceName = *selectedVoiceId;
 
-    // Find the voice name for the current ID
     for (const auto& voice : m_AvailableVoices) {
       if (voice.Id == *selectedVoiceId) {
         currentVoiceName = voice.Name;
@@ -192,7 +176,6 @@ namespace Image2Card::AI
       cli.set_connection_timeout(120);
       cli.set_read_timeout(120);
 
-      // Set correct Accept header based on format
       std::string acceptHeader = (audioFormat == "opus") ? "audio/opus" : "audio/mpeg";
       httplib::Headers headers = {{"xi-api-key", m_ApiKey}, {"Accept", acceptHeader}};
 
@@ -200,12 +183,10 @@ namespace Image2Card::AI
                                 {"model_id", "eleven_v3"},
                                 {"voice_settings", {{"stability", 0.5}, {"similarity_boost", 0.75}}}};
 
-      // Add language code if provided
       if (!languageCode.empty()) {
         payload["language_code"] = languageCode;
       }
 
-      // Add output format if not default MP3
       if (audioFormat == "opus") {
         payload["output_format"] = "opus_64";
       }

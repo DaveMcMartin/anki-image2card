@@ -74,14 +74,14 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 ## Project Structure
 
 - `src/` - Main application source code
-  - `core/` - Core functionality
-  - `ui/` - User interface components
   - `ai/` - AI integration modules
   - `api/` - API clients (AnkiConnect)
   - `audio/` - Audio processing and playback
   - `config/` - Configuration management
+  - `core/` - Core functionality
   - `language/` - Language utilities
   - `ocr/` - OCR providers (Tesseract)
+  - `ui/` - User interface components
   - `utils/` - Utility functions
 - `cmake/` - CMake build scripts and utilities
 - `docs/` - Documentation and screenshots
@@ -142,7 +142,7 @@ This project is licensed under the GNU General Public License v3.0 (GPLv3). See 
 
 ## Planned Features
 
-This is a work in progress. Here are some planned features, it is not in priority order. My idea is to move everything to local processing.
+This is a work in progress. Here are some planned features, it is not in priority order. My idea is to move everything to local processing, so the app becomes more accessible.
 
 - [ ] Github Action on release that generates binaries for Windows, macOS, and Linux.
 - [x] Add local OCR option with Tesseract with configurable text orientation
@@ -151,7 +151,7 @@ This is a work in progress. Here are some planned features, it is not in priorit
 - [ ] Get Vocab audio from real pronounciation (Forvo, NHK)
 - [ ] Add Mecab and replace the analysis prompt
 - [ ] Add local audio generation
-- [ ] Switch from Tesseract to PaddleOCR (or other better OCR engine)
+- [ ] Add PaddleOCR (better OCR engine than Tesseract for Japanese)
 
 ## Contributing
 
