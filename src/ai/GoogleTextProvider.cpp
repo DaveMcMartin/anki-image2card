@@ -163,21 +163,19 @@ namespace Image2Card::AI
 
   std::string GoogleTextProvider::ExtractTextFromImage(const std::vector<unsigned char>& imageBuffer,
                                                        const std::string& mimeType,
-                                                       Language::ILanguage* language)
+                                                       const Language::ILanguage& language)
   {
     if (imageBuffer.empty())
-      return "";
-    if (!language)
       return "";
 
     std::string base64Image = Utils::Base64Utils::Encode(imageBuffer);
 
-    nlohmann::json payload = {{"system_instruction", {{"parts", {{{"text", language->GetOCRSystemPrompt()}}}}}},
+    nlohmann::json payload = {{"system_instruction", {{"parts", {{{"text", language.GetOCRSystemPrompt()}}}}}},
                               {"contents",
                                {{{"role", "user"},
                                  {"parts",
                                   {{{"inline_data", {{"mime_type", mimeType}, {"data", base64Image}}}},
-                                   {{"text", language->GetOCRUserPrompt()}}}}}}},
+                                   {{"text", language.GetOCRUserPrompt()}}}}}}},
                               {"generationConfig", {{"temperature", 0.0}}}};
 
 #ifndef NDEBUG
@@ -253,14 +251,11 @@ namespace Image2Card::AI
 
   nlohmann::json GoogleTextProvider::AnalyzeSentence(const std::string& sentence,
                                                      const std::string& targetWord,
-                                                     Language::ILanguage* language)
+                                                     const Language::ILanguage& language)
   {
-    if (!language)
-      return nlohmann::json();
+    std::string prompt = language.GetAnalysisUserPrompt(sentence, targetWord);
 
-    std::string prompt = language->GetAnalysisUserPrompt(sentence, targetWord);
-
-    nlohmann::json payload = {{"system_instruction", {{"parts", {{{"text", language->GetAnalysisSystemPrompt()}}}}}},
+    nlohmann::json payload = {{"system_instruction", {{"parts", {{{"text", language.GetAnalysisSystemPrompt()}}}}}},
                               {"contents", {{{"role", "user"}, {"parts", {{{"text", prompt}}}}}}},
                               {"generationConfig", {{"temperature", 0.1}, {"response_mime_type", "application/json"}}}};
 

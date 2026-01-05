@@ -9,9 +9,15 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 - **Beautiful UI**: Built with SDL3 and Dear ImGui for a responsive and intuitive interface.
 - **Image Processing**: Drag and drop images, crop sections for analysis.
 - **AI Integration**:
-  - **Text AI**: Integration with Gemini (Google) and xAI (Grok) for OCR and sentence analysis.
-  - **Audio AI**: Integration with ElevenLabs for high-quality text-to-speech.
-- **Local OCR**: Built-in Tesseract OCR support for offline, fast text extraction with configurable text orientation (horizontal/vertical).
+  - **OCR**: Integration with Gemini (Google) and xAI (Grok) for optical character recognition.
+  - **Translation**: Optional AI-powered sentence translation via Gemini, xAI, DeepL, or Google Translate.
+  - **Audio AI**: Integration with ElevenLabs for high-quality text-to-speech (fallback when Forvo is unavailable).
+- **Local Processing**:
+  - **Local OCR**: Built-in Tesseract OCR support for offline, fast text extraction with configurable text orientation (horizontal/vertical).
+  - **Mecab Morphological Analysis**: Local Japanese morphological analysis for accurate word parsing and sentence breakdown.
+  - **JMDict Dictionary**: Offline dictionary lookup using SQLite database for word definitions.
+  - **Pitch Accent Database**: Local pitch accent lookup for accurate pronunciation patterns.
+  - **Forvo Audio**: Integration with Forvo for native speaker audio pronunciation.
 - **Anki Integration**: Connects directly to Anki via AnkiConnect to create cards automatically.
 - **Smart Fields**: Automatically detects and fills fields like Sentence, Translation, Target Word, Furigana, Pitch Accent, and Definitions.
 
@@ -34,6 +40,10 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
   - **macOS**: `brew install tesseract`
   - **Linux**: `sudo apt-get install tesseract-ocr libtesseract-dev` (Ubuntu/Debian) or equivalent
   - **Windows**: Download from [UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki)
+- **Mecab**: Required for local morphological analysis.
+  - **macOS**: `brew install mecab mecab-ipadic`
+  - **Linux**: `sudo apt-get install mecab libmecab-dev mecab-ipadic-utf8` (Ubuntu/Debian) or equivalent
+  - **Windows**: Download from [GitHub](https://github.com/ikegami-yukino/mecab/releases)
 - **Anki**: With the [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on installed.
 
 ## Building
@@ -93,21 +103,23 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 1. **Configuration**:
    - Go to the "Configuration" tab.
    - Set up your AnkiConnect URL (default is usually `http://localhost:8765`).
-   - Enter your API keys for Text AI providers and Audio AI providers you want to use.
+   - **OCR**: Choose between Tesseract (local, offline) or AI (cloud-based, more accurate).
+   - **Translation**: Select your preferred dictionary service (None, DeepL, Google Translate, Gemini, or xAI).
+   - Enter API keys for the services you want to use.
    - On the Card tab, select the Note Type, deck, and fields you want to fill.
 
-2. **OCR Configuration**:
-   - Go to the "Configuration" tab and select the "OCR" subtab.
-   - Choose between **Tesseract (Local)** or **AI (Cloud-based)** OCR methods.
-   - Tesseract is faster, works offline, and is ideal for simple text extraction.
-   - AI OCR provides better accuracy for complex layouts and handwriting.
-
-3. **Card Creation**:
+2. **Card Creation**:
    - Drag and drop an image (e.g., a page from a manga or book) into the Image Section.
    - Select the area you want to scan.
    - If using Tesseract, select the text orientation (horizontal or vertical) using the buttons in the Image Section.
    - Click "Scan" to process the image with your configured OCR method.
-   - Review the generated fields in the modal before proceeding.
+   - The app uses **local processing** for:
+     - Morphological analysis (Mecab)
+     - Word definitions (JMDict)
+     - Pitch accent patterns (local database)
+     - Furigana generation (Mecab-based)
+     - Audio pronunciation (Forvo, with AI fallback)
+   - Translation is handled by your selected dictionary service (or skipped if "None").
    - Review the generated fields in the "Anki Card Settings" section.
    - Click "Add" to create the card in Anki.
 
@@ -133,8 +145,10 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 - **cpp-httplib**: Lightweight HTTP client library.
 - **Tesseract OCR**: Local optical character recognition.
 - **Leptonica**: Image processing library (dependency of Tesseract).
+- **Mecab**: Japanese morphological analyzer.
+- **SQLite3**: Database engine for local dictionaries and pitch accent data.
 
-Most dependencies are automatically fetched and built by CMake. Tesseract and Leptonica are found using pkg-config on your system.
+Most dependencies are automatically fetched and built by CMake. Tesseract, Leptonica, Mecab, and SQLite3 are found using pkg-config on your system.
 
 ## License
 
@@ -147,10 +161,13 @@ This is a work in progress. Here are some planned features, it is not in priorit
 - [ ] Github Action on release that generates binaries for Windows, macOS, and Linux.
 - [x] Add local OCR option with Tesseract with configurable text orientation
 - [x] Add support for multiple images
-- [ ] Replace AI with dictionary
-- [ ] Get Vocab audio from real pronounciation (Forvo, NHK)
-- [ ] Add Mecab and replace the analysis prompt
-- [ ] Add local audio generation
+- [x] Replace AI dictionary with local JMDict
+- [x] Get vocab audio from Forvo (with AI fallback)
+- [x] Add Mecab for local morphological analysis
+- [x] Add pitch accent database for accurate pronunciation patterns
+- [x] Add configurable translation services (DeepL, Google Translate, Gemini, xAI)
+- [ ] Add UI configuration for all translation services
+- [ ] Add local audio generation (TTS)
 - [ ] Add PaddleOCR (better OCR engine than Tesseract for Japanese)
 
 ## Contributing

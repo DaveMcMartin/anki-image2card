@@ -7,6 +7,7 @@
 
 #include <backends/imgui_impl_sdl3.h>
 #include <backends/imgui_impl_sdlrenderer3.h>
+#include <httplib.h>
 #include <iostream>
 #include <string>
 
@@ -19,6 +20,12 @@
 #include "core/Logger.h"
 #include "core/sdl/SDLWrappers.h"
 #include "language/JapaneseLanguage.h"
+#include "language/analyzer/SentenceAnalyzer.h"
+#include "language/audio/ForvoClient.h"
+#include "language/services/AITranslationService.h"
+#include "language/services/DeepLService.h"
+#include "language/services/GoogleTranslateService.h"
+#include "language/services/NoneTranslationService.h"
 #include "ocr/TesseractOCRProvider.h"
 #include "stb_image.h"
 #include "ui/AnkiCardSettingsSection.h"
@@ -205,8 +212,8 @@ namespace Image2Card
       m_ActiveLanguage = m_Languages[0].get();
     }
 
-    m_TextAIProviders.push_back(std::make_unique<AI::GoogleTextProvider>());
-    m_TextAIProviders.push_back(std::make_unique<AI::XAiTextProvider>());
+    m_TextAIProviders.push_back(std::make_shared<AI::GoogleTextProvider>());
+    m_TextAIProviders.push_back(std::make_shared<AI::XAiTextProvider>());
 
     for (auto& provider : m_TextAIProviders) {
       nlohmann::json providerConfig;
@@ -249,6 +256,51 @@ namespace Image2Card
       m_ConfigManager->GetConfig().SelectedVoiceModel = "ElevenLabs/" + m_ConfigManager->GetConfig().AudioVoiceId;
     }
 
+    auto noneService = std::make_unique<Language::Services::NoneTranslationService>();
+    m_LanguageServices.push_back(std::move(noneService));
+
+    auto deeplService = std::make_unique<Language::Services::DeepLService>();
+    nlohmann::json deeplConfig;
+    deeplConfig["api_key"] = m_ConfigManager->GetConfig().DeepLApiKey;
+    deeplConfig["use_free_api"] = m_ConfigManager->GetConfig().DeepLUseFreeAPI;
+    deeplConfig["source_lang"] = m_ConfigManager->GetConfig().DeepLSourceLang;
+    deeplConfig["target_lang"] = m_ConfigManager->GetConfig().DeepLTargetLang;
+    deeplService->LoadConfig(deeplConfig);
+    m_LanguageServices.push_back(std::move(deeplService));
+
+    auto googleTranslateService = std::make_unique<Language::Services::GoogleTranslateService>();
+    nlohmann::json googleConfig;
+    googleConfig["source_lang"] = "ja";
+    googleConfig["target_lang"] = "en";
+    googleTranslateService->LoadConfig(googleConfig);
+    m_LanguageServices.push_back(std::move(googleTranslateService));
+
+    for (auto& provider : m_TextAIProviders) {
+      auto aiTranslationService =
+          std::make_unique<Language::Services::AITranslationService>(provider, *m_ActiveLanguage);
+      m_LanguageServices.push_back(std::move(aiTranslationService));
+    }
+
+    AF_INFO("Language services initialized");
+
+    m_SentenceAnalyzer = std::make_unique<Language::Analyzer::SentenceAnalyzer>();
+    m_SentenceAnalyzer->SetLanguageServices(&m_LanguageServices);
+
+    std::string selectedTranslator = m_ConfigManager->GetConfig().SelectedTranslator;
+    if (selectedTranslator.empty()) {
+      selectedTranslator = "none";
+    }
+    m_SentenceAnalyzer->SetPreferredTranslator(selectedTranslator);
+
+    if (m_SentenceAnalyzer->Initialize(m_BasePath)) {
+      AF_INFO("Sentence analyzer initialized successfully");
+    } else {
+      AF_ERROR("Failed to initialize sentence analyzer");
+    }
+
+    m_ForvoClient = std::make_unique<Language::Audio::ForvoClient>("ja", 10, 1);
+    AF_INFO("Forvo audio client initialized");
+
     std::string ankiUrl = m_ConfigManager->GetConfig().AnkiConnectUrl;
     if (ankiUrl.empty())
       ankiUrl = "http://localhost:8765";
@@ -260,10 +312,23 @@ namespace Image2Card
                                                                         m_ConfigManager.get(),
                                                                         &m_TextAIProviders,
                                                                         m_AudioAIProvider.get(),
+                                                                        &m_LanguageServices,
                                                                         &m_Languages,
                                                                         &m_ActiveLanguage);
+
+    m_ConfigurationSection->SetOnTranslatorChangedCallback([this](const std::string& translatorId) {
+      if (m_SentenceAnalyzer) {
+        m_SentenceAnalyzer->SetPreferredTranslator(translatorId);
+      }
+    });
     m_AnkiCardSettingsSection =
         std::make_unique<UI::AnkiCardSettingsSection>(m_Renderer, m_AnkiConnectClient.get(), m_ConfigManager.get());
+
+    m_ConfigurationSection->SetOnNoteTypeOrDeckChangedCallback([this]() {
+      if (m_AnkiCardSettingsSection) {
+        m_AnkiCardSettingsSection->RefreshData();
+      }
+    });
     m_StatusSection = std::make_unique<UI::StatusSection>();
 
     m_AnkiCardSettingsSection->SetOnStatusMessageCallback([this](const std::string& msg) {
@@ -458,16 +523,23 @@ namespace Image2Card
         ImGui::EndTabItem();
       }
 
-      if (ImGui::BeginTabItem("AI")) {
+      if (ImGui::BeginTabItem("OCR")) {
         if (m_ConfigurationSection) {
-          m_ConfigurationSection->RenderAITab();
+          m_ConfigurationSection->RenderOCRTab();
         }
         ImGui::EndTabItem();
       }
 
-      if (ImGui::BeginTabItem("OCR")) {
+      if (ImGui::BeginTabItem("Dictionary")) {
         if (m_ConfigurationSection) {
-          m_ConfigurationSection->RenderOCRTab();
+          m_ConfigurationSection->RenderDictionaryTab();
+        }
+        ImGui::EndTabItem();
+      }
+
+      if (ImGui::BeginTabItem("Settings")) {
+        if (m_ConfigurationSection) {
+          m_ConfigurationSection->RenderConfigurationTab();
         }
         ImGui::EndTabItem();
       }
@@ -598,7 +670,7 @@ namespace Image2Card
               config["vision_model"] = modelName;
               provider->LoadConfig(config);
 
-              text = provider->ExtractTextFromImage(imageBytes, "image/png", m_ActiveLanguage);
+              text = provider->ExtractTextFromImage(imageBytes, "image/png", *m_ActiveLanguage);
             }
 
             if (m_ActiveLanguage) {
@@ -832,22 +904,34 @@ namespace Image2Card
             AF_INFO("Analyzing sentence...");
             AF_DEBUG("Sentence: '{}', Target Word: '{}'", sentence, targetWord);
 
-            auto* provider = GetTextProviderForModel(selectedAnalysisModel);
-            if (!provider) {
-              throw std::runtime_error("No Text AI Provider found for selected analysis model.");
+            if (!m_ActiveLanguage) {
+              throw std::runtime_error("No active language selected");
             }
 
-            // Update provider with selected model
-            std::string modelName = selectedAnalysisModel;
-            size_t slashPos = modelName.find('/');
-            if (slashPos != std::string::npos) {
-              modelName = modelName.substr(slashPos + 1);
-            }
-            nlohmann::json config;
-            config["sentence_model"] = modelName;
-            provider->LoadConfig(config);
+            nlohmann::json analysis;
 
-            nlohmann::json analysis = provider->AnalyzeSentence(sentence, targetWord, m_ActiveLanguage);
+            if (m_SentenceAnalyzer && m_SentenceAnalyzer->IsReady()) {
+              AF_INFO("Using local sentence analyzer");
+              analysis = m_SentenceAnalyzer->AnalyzeSentence(sentence, targetWord, m_ActiveLanguage);
+            } else {
+              AF_INFO("Using AI for sentence analysis");
+              auto* provider = GetTextProviderForModel(selectedAnalysisModel);
+              if (!provider) {
+                throw std::runtime_error("No Text AI Provider found for selected analysis model.");
+              }
+
+              // Update provider with selected model
+              std::string modelName = selectedAnalysisModel;
+              size_t slashPos = modelName.find('/');
+              if (slashPos != std::string::npos) {
+                modelName = modelName.substr(slashPos + 1);
+              }
+              nlohmann::json config;
+              config["sentence_model"] = modelName;
+              provider->LoadConfig(config);
+
+              analysis = provider->AnalyzeSentence(sentence, targetWord, *m_ActiveLanguage);
+            }
 
             if (m_CancelRequested.load()) {
               AF_INFO("Processing task cancelled after analysis.");
@@ -907,15 +991,65 @@ namespace Image2Card
               if (m_StatusSection)
                 m_StatusSection->SetStatus("Generating Vocab Audio...");
 
-              std::string audioFormat = m_ConfigManager->GetConfig().AudioFormat;
-              std::vector<unsigned char> vocabAudio =
-                  m_AudioAIProvider->GenerateAudio(analyzedTargetWord, voice, languageCode, audioFormat);
-              AF_INFO("Vocab Audio generated, size: {} bytes", vocabAudio.size());
+              std::vector<unsigned char> vocabAudio;
+
+              if (m_ForvoClient && m_ForvoClient->IsAvailable()) {
+                AF_INFO("Searching audio from Forvo");
+                try {
+                  auto audioResults = m_ForvoClient->SearchAudio(analyzedTargetWord, analyzedTargetWord, "");
+
+                  if (!audioResults.empty()) {
+                    std::string audioUrl = audioResults[0].url;
+                    if (audioUrl.find("https://") == 0) {
+                      audioUrl = audioUrl.substr(8);
+                    }
+
+                    size_t slashPos = audioUrl.find('/');
+                    if (slashPos != std::string::npos) {
+                      std::string host = audioUrl.substr(0, slashPos);
+                      std::string path = audioUrl.substr(slashPos);
+
+                      httplib::SSLClient audioClient(host.c_str());
+                      audioClient.set_connection_timeout(10, 0);
+                      audioClient.set_read_timeout(10, 0);
+
+                      auto res = audioClient.Get(path.c_str());
+                      if (res && res->status == 200) {
+                        vocabAudio.assign(res->body.begin(), res->body.end());
+                        AF_INFO("Downloaded vocab audio from Forvo: {} ({} bytes)",
+                                audioResults[0].filename,
+                                vocabAudio.size());
+                      } else {
+                        AF_WARN("Failed to download vocab audio from: {}", audioUrl);
+                      }
+                    }
+                  }
+                } catch (const std::exception& e) {
+                  AF_WARN("Forvo audio search failed: {}, falling back to AI", e.what());
+                }
+              }
+
+              if (vocabAudio.empty() && m_AudioAIProvider) {
+                AF_INFO("Using AI for vocab audio generation");
+                std::string audioFormat = m_ConfigManager->GetConfig().AudioFormat;
+                vocabAudio = m_AudioAIProvider->GenerateAudio(analyzedTargetWord, voice, languageCode, audioFormat);
+                AF_INFO("Vocab Audio generated, size: {} bytes", vocabAudio.size());
+              }
 
               if (m_AnkiCardSettingsSection && !vocabAudio.empty()) {
                 // 8: Vocab Audio
-                std::string audioExt = (audioFormat == "opus") ? "opus" : "mp3";
-                m_AnkiCardSettingsSection->SetFieldByTool(8, vocabAudio, "vocab." + audioExt);
+                std::string filename = "vocab.mp3";
+                if (m_ForvoClient && !vocabAudio.empty()) {
+                  auto audioResults = m_ForvoClient->SearchAudio(analyzedTargetWord, analyzedTargetWord, "");
+                  if (!audioResults.empty()) {
+                    filename = audioResults[0].filename;
+                  }
+                } else {
+                  std::string audioFormat = m_ConfigManager->GetConfig().AudioFormat;
+                  std::string audioExt = (audioFormat == "opus") ? "opus" : "mp3";
+                  filename = "vocab." + audioExt;
+                }
+                m_AnkiCardSettingsSection->SetFieldByTool(8, vocabAudio, filename);
               }
             }
 

@@ -83,6 +83,20 @@ namespace Image2Card::Config
       if (j.contains("audio_format"))
         m_Config.AudioFormat = j["audio_format"];
 
+      if (j.contains("deepl_api_key"))
+        m_Config.DeepLApiKey = j["deepl_api_key"];
+      if (j.contains("deepl_use_free_api"))
+        m_Config.DeepLUseFreeAPI = j["deepl_use_free_api"];
+      if (j.contains("deepl_source_lang"))
+        m_Config.DeepLSourceLang = j["deepl_source_lang"];
+      if (j.contains("deepl_target_lang"))
+        m_Config.DeepLTargetLang = j["deepl_target_lang"];
+
+      if (j.contains("selected_word_dictionary"))
+        m_Config.SelectedWordDictionary = j["selected_word_dictionary"];
+      if (j.contains("selected_translator"))
+        m_Config.SelectedTranslator = j["selected_translator"];
+
       if (j.contains("last_note_type"))
         m_Config.LastNoteType = j["last_note_type"];
       if (j.contains("last_deck"))
@@ -135,6 +149,14 @@ namespace Image2Card::Config
     j["tesseract_orientation"] = m_Config.TesseractOrientation;
 
     j["audio_format"] = m_Config.AudioFormat;
+
+    j["deepl_api_key"] = m_Config.DeepLApiKey;
+    j["deepl_use_free_api"] = m_Config.DeepLUseFreeAPI;
+    j["deepl_source_lang"] = m_Config.DeepLSourceLang;
+    j["deepl_target_lang"] = m_Config.DeepLTargetLang;
+
+    j["selected_word_dictionary"] = m_Config.SelectedWordDictionary;
+    j["selected_translator"] = m_Config.SelectedTranslator;
 
     j["last_note_type"] = m_Config.LastNoteType;
     j["last_deck"] = m_Config.LastDeck;

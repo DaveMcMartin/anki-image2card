@@ -22,6 +22,10 @@ namespace Image2Card::Config
     std::string SelectedAnalysisModel;
     std::string SelectedVoiceModel;
 
+    // Dictionary and Translation Selection
+    std::string SelectedWordDictionary = "JMDict";
+    std::string SelectedTranslator = "google_translate";
+
     std::string TextApiKey;
     std::vector<std::string> TextAvailableModels;
 
@@ -35,6 +39,12 @@ namespace Image2Card::Config
     // OCR Configuration
     std::string OCRMethod = "Tesseract";             // "AI" or "Tesseract"
     std::string TesseractOrientation = "horizontal"; // "horizontal" or "vertical"
+
+    // DeepL Translation Configuration
+    std::string DeepLApiKey;
+    bool DeepLUseFreeAPI = true;
+    std::string DeepLSourceLang = "JA";
+    std::string DeepLTargetLang = "EN";
 
     // Audio Configuration
     std::string AudioFormat = "mp3"; // "mp3" or "opus"

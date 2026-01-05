@@ -46,11 +46,42 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cpp-httplib)
 
-# Find Tesseract OCR and WebP
+# Find Dependencies
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(TESSERACT REQUIRED tesseract)
 pkg_check_modules(LEPTONICA REQUIRED lept)
 pkg_check_modules(WEBP REQUIRED libwebp)
+
+find_package(SQLite3 REQUIRED)
+
+# Try to find Mecab with pkg-config first, fall back to manual detection
+pkg_check_modules(MECAB mecab)
+if(NOT MECAB_FOUND)
+    # Fallback: use mecab-config on macOS
+    find_program(MECAB_CONFIG mecab-config)
+    if(MECAB_CONFIG)
+        execute_process(
+            COMMAND ${MECAB_CONFIG} --libs
+            OUTPUT_VARIABLE MECAB_LIBS
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        execute_process(
+            COMMAND ${MECAB_CONFIG} --inc-dir
+            OUTPUT_VARIABLE MECAB_INCLUDE_PATH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        # Parse libs to extract library path and library name
+        string(REGEX MATCH "-L[^ ]+" MECAB_LIB_PATH "${MECAB_LIBS}")
+        string(REPLACE "-L" "" MECAB_LIBRARY_DIRS "${MECAB_LIB_PATH}")
+        set(MECAB_LIBRARIES mecab)
+        set(MECAB_FOUND TRUE)
+        message(STATUS "Found Mecab via mecab-config")
+        message(STATUS "  MECAB_INCLUDE_PATH: ${MECAB_INCLUDE_PATH}")
+        message(STATUS "  MECAB_LIBRARY_DIRS: ${MECAB_LIBRARY_DIRS}")
+    else()
+        message(FATAL_ERROR "Mecab not found. Please install it: brew install mecab mecab-ipadic")
+    endif()
+endif()
 
 add_library(imgui_sdl3 STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
@@ -93,6 +124,8 @@ target_include_directories(AnkiImage2Card PRIVATE
     ${TESSERACT_INCLUDE_DIRS}
     ${LEPTONICA_INCLUDE_DIRS}
     ${WEBP_INCLUDE_DIRS}
+    ${MECAB_INCLUDE_PATH}
+    ${MECAB_INCLUDE_DIRS}
 )
 
 target_link_libraries(AnkiImage2Card PRIVATE
@@ -101,12 +134,15 @@ target_link_libraries(AnkiImage2Card PRIVATE
     nlohmann_json::nlohmann_json
     httplib::httplib
     ${WEBP_LIBRARIES}
+    ${MECAB_LIBRARIES}
+    SQLite::SQLite3
 )
 
 target_link_directories(AnkiImage2Card PRIVATE
     ${TESSERACT_LIBRARY_DIRS}
     ${LEPTONICA_LIBRARY_DIRS}
     ${WEBP_LIBRARY_DIRS}
+    ${MECAB_LIBRARY_DIRS}
 )
 
 target_link_libraries(AnkiImage2Card PRIVATE

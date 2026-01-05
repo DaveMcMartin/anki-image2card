@@ -28,9 +28,10 @@ public:
 
     std::string ExtractTextFromImage(const std::vector<unsigned char>& imageBuffer,
                                      const std::string& mimeType,
-                                     Language::ILanguage* language) override;
-    nlohmann::json
-    AnalyzeSentence(const std::string& sentence, const std::string& targetWord, Language::ILanguage* language) override;
+                                     const Language::ILanguage& language) override;
+    nlohmann::json AnalyzeSentence(const std::string& sentence,
+                                   const std::string& targetWord,
+                                   const Language::ILanguage& language) override;
 
 private:
 

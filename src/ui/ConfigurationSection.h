@@ -25,7 +25,12 @@ namespace Image2Card::AI
 namespace Image2Card::Language
 {
   class ILanguage;
-}
+
+  namespace Services
+  {
+    class ILanguageService;
+  }
+} // namespace Image2Card::Language
 
 namespace Image2Card::UI
 {
@@ -36,8 +41,9 @@ public:
 
     ConfigurationSection(API::AnkiConnectClient* ankiConnectClient,
                          Config::ConfigManager* configManager,
-                         std::vector<std::unique_ptr<AI::ITextAIProvider>>* textAIProviders,
+                         std::vector<std::shared_ptr<AI::ITextAIProvider>>* textAIProviders,
                          AI::IAudioAIProvider* audioAIProvider,
+                         std::vector<std::unique_ptr<Language::Services::ILanguageService>>* languageServices,
                          std::vector<std::unique_ptr<Language::ILanguage>>* languages,
                          Language::ILanguage** activeLanguage);
     ~ConfigurationSection() override;
@@ -45,10 +51,19 @@ public:
     void Render() override;
 
     void SetOnConnectCallback(std::function<void()> callback) { m_OnConnectCallback = callback; }
+    void SetOnTranslatorChangedCallback(std::function<void(const std::string&)> callback)
+    {
+      m_OnTranslatorChangedCallback = callback;
+    }
+    void SetOnNoteTypeOrDeckChangedCallback(std::function<void()> callback)
+    {
+      m_OnNoteTypeOrDeckChangedCallback = callback;
+    }
 
     void RenderAnkiConnectTab();
-    void RenderAITab();
     void RenderOCRTab();
+    void RenderDictionaryTab();
+    void RenderConfigurationTab();
 
 private:
 
@@ -58,12 +73,15 @@ private:
 
     API::AnkiConnectClient* m_AnkiConnectClient;
     Config::ConfigManager* m_ConfigManager;
-    std::vector<std::unique_ptr<AI::ITextAIProvider>>* m_TextAIProviders;
+    std::vector<std::shared_ptr<AI::ITextAIProvider>>* m_TextAIProviders;
     AI::IAudioAIProvider* m_AudioAIProvider;
+    std::vector<std::unique_ptr<Language::Services::ILanguageService>>* m_LanguageServices;
     std::vector<std::unique_ptr<Language::ILanguage>>* m_Languages;
     Language::ILanguage** m_ActiveLanguage;
 
     std::function<void()> m_OnConnectCallback;
+    std::function<void(const std::string&)> m_OnTranslatorChangedCallback;
+    std::function<void()> m_OnNoteTypeOrDeckChangedCallback;
   };
 
 } // namespace Image2Card::UI

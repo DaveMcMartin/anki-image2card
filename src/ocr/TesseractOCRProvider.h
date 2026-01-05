@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "ocr/IOCRProvider.h"
+
 // Forward declare Pix struct from Leptonica
 struct Pix;
 
@@ -21,7 +23,7 @@ namespace Image2Card::OCR
     Vertical
   };
 
-  class TesseractOCRProvider
+  class TesseractOCRProvider : public IOCRProvider
   {
 public:
 
@@ -36,9 +38,11 @@ public:
     void SetOrientation(TesseractOrientation orientation);
     TesseractOrientation GetOrientation() const { return m_Orientation; }
 
-    std::string ExtractTextFromImage(const std::vector<unsigned char>& imageBuffer);
+    std::string GetName() const override { return "Tesseract (Local)"; }
 
-    bool IsInitialized() const { return m_IsInitialized; }
+    std::string ExtractTextFromImage(const std::vector<unsigned char>& imageBuffer) override;
+
+    bool IsInitialized() const override { return m_IsInitialized; }
 
 private:
 

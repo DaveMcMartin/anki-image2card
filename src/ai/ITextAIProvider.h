@@ -30,10 +30,11 @@ public:
 
     virtual std::string ExtractTextFromImage(const std::vector<unsigned char>& imageBuffer,
                                              const std::string& mimeType,
-                                             Language::ILanguage* language) = 0;
+                                             const Language::ILanguage& language) = 0;
 
-    virtual nlohmann::json
-    AnalyzeSentence(const std::string& sentence, const std::string& targetWord, Language::ILanguage* language) = 0;
+    virtual nlohmann::json AnalyzeSentence(const std::string& sentence,
+                                           const std::string& targetWord,
+                                           const Language::ILanguage& language) = 0;
   };
 
 } // namespace Image2Card::AI

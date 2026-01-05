@@ -48,7 +48,7 @@ If multiple text blocks exist, extract them in reading order.)";
       std::string result;
       result.reserve(text.size());
       for (char c : text) {
-        // Remove spaces and newlines for Japanese text (Tesseract adds unnecessary spaces)
+        // Remove spaces and newlines for Japanese text
         if (c != '\n' && c != '\r' && c != ' ') {
           result += c;
         }

@@ -16,6 +16,21 @@ namespace Image2Card::OCR
   class TesseractOCRProvider;
 }
 
+namespace Image2Card::Language::Analyzer
+{
+  class SentenceAnalyzer;
+}
+
+namespace Image2Card::Language::Audio
+{
+  class ForvoClient;
+}
+
+namespace Image2Card::Language::Services
+{
+  class ILanguageService;
+}
+
 namespace Image2Card::UI
 {
   class ImageSection;
@@ -97,11 +112,15 @@ private:
     std::unique_ptr<API::AnkiConnectClient> m_AnkiConnectClient;
     std::unique_ptr<Config::ConfigManager> m_ConfigManager;
 
-    std::vector<std::unique_ptr<AI::ITextAIProvider>> m_TextAIProviders;
+    std::vector<std::shared_ptr<AI::ITextAIProvider>> m_TextAIProviders;
 
     std::unique_ptr<AI::IAudioAIProvider> m_AudioAIProvider;
 
     std::unique_ptr<OCR::TesseractOCRProvider> m_TesseractOCRProvider;
+
+    std::vector<std::unique_ptr<Language::Services::ILanguageService>> m_LanguageServices;
+    std::unique_ptr<Language::Analyzer::SentenceAnalyzer> m_SentenceAnalyzer;
+    std::unique_ptr<Language::Audio::ForvoClient> m_ForvoClient;
 
     std::vector<std::unique_ptr<Language::ILanguage>> m_Languages;
     Language::ILanguage* m_ActiveLanguage = nullptr;

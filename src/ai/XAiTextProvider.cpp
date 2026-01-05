@@ -154,11 +154,9 @@ namespace Image2Card::AI
 
   std::string XAiTextProvider::ExtractTextFromImage(const std::vector<unsigned char>& imageBuffer,
                                                     const std::string& mimeType,
-                                                    Language::ILanguage* language)
+                                                    const Language::ILanguage& language)
   {
     if (imageBuffer.empty())
-      return "";
-    if (!language)
       return "";
 
     std::string base64Image = Utils::Base64Utils::Encode(imageBuffer);
@@ -168,11 +166,11 @@ namespace Image2Card::AI
         {"model", m_VisionModel},
         {"messages",
          nlohmann::json::array(
-             {{{"role", "system"}, {"content", language->GetOCRSystemPrompt()}},
+             {{{"role", "system"}, {"content", language.GetOCRSystemPrompt()}},
               {{"role", "user"},
                {"content",
                 nlohmann::json::array({{{"type", "image_url"}, {"image_url", {{"url", dataUrl}, {"detail", "high"}}}},
-                                       {{"type", "text"}, {"text", language->GetOCRUserPrompt()}}})}}})},
+                                       {{"type", "text"}, {"text", language.GetOCRUserPrompt()}}})}}})},
         {"temperature", 0.0},
         {"stream", false}};
 
@@ -258,19 +256,16 @@ namespace Image2Card::AI
 
   nlohmann::json XAiTextProvider::AnalyzeSentence(const std::string& sentence,
                                                   const std::string& targetWord,
-                                                  Language::ILanguage* language)
+                                                  const Language::ILanguage& language)
   {
-    if (!language)
-      return nlohmann::json();
-
-    std::string prompt = language->GetAnalysisUserPrompt(sentence, targetWord);
+    std::string prompt = language.GetAnalysisUserPrompt(sentence, targetWord);
 
     AF_INFO("AnalyzeSentence Prompt: {}", prompt);
 
     nlohmann::json payload = {
         {"model", m_SentenceModel},
         {"messages",
-         nlohmann::json::array({{{"role", "system"}, {"content", language->GetAnalysisSystemPrompt()}},
+         nlohmann::json::array({{{"role", "system"}, {"content", language.GetAnalysisSystemPrompt()}},
                                 {{"role", "user"}, {"content", prompt}}})},
         {"temperature", 0.1},
         {"stream", false}};
