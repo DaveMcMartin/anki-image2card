@@ -47,7 +47,8 @@ namespace Image2Card::Config
     std::string DeepLTargetLang = "EN";
 
     // Audio Configuration
-    std::string AudioFormat = "mp3"; // "mp3" or "opus"
+    std::string AudioProvider = "elevenlabs"; // "elevenlabs" or "native"
+    std::string AudioFormat = "mp3";          // "mp3" or "opus"
 
     // UI State
     std::string LastNoteType;

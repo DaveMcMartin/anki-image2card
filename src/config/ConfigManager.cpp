@@ -82,6 +82,8 @@ namespace Image2Card::Config
 
       if (j.contains("audio_format"))
         m_Config.AudioFormat = j["audio_format"];
+      if (j.contains("audio_provider"))
+        m_Config.AudioProvider = j["audio_provider"];
 
       if (j.contains("deepl_api_key"))
         m_Config.DeepLApiKey = j["deepl_api_key"];
@@ -149,6 +151,7 @@ namespace Image2Card::Config
     j["tesseract_orientation"] = m_Config.TesseractOrientation;
 
     j["audio_format"] = m_Config.AudioFormat;
+    j["audio_provider"] = m_Config.AudioProvider;
 
     j["deepl_api_key"] = m_Config.DeepLApiKey;
     j["deepl_use_free_api"] = m_Config.DeepLUseFreeAPI;

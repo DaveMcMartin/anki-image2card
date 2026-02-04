@@ -107,6 +107,21 @@ file(GLOB_RECURSE SOURCES
     "src/*.h"
 )
 
+# Remove platform specific TTS implementations from the glob
+list(FILTER SOURCES EXCLUDE REGEX "src/ai/native/NativeAudioProvider_.*")
+
+if(APPLE)
+    list(APPEND SOURCES "src/ai/native/NativeAudioProvider_Mac.mm")
+    find_library(AVFOUNDATION_FRAMEWORK AVFoundation)
+    find_library(FOUNDATION_FRAMEWORK Foundation)
+elseif(WIN32)
+    list(APPEND SOURCES "src/ai/native/NativeAudioProvider_Windows.cpp")
+elseif(UNIX AND NOT APPLE)
+    list(APPEND SOURCES "src/ai/native/NativeAudioProvider_Linux.cpp")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SPEECHD REQUIRED speech-dispatcher)
+endif()
+
 if(APPLE)
     list(APPEND SOURCES "${CMAKE_SOURCE_DIR}/assets/logo.icns")
     set_source_files_properties("${CMAKE_SOURCE_DIR}/assets/logo.icns" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
@@ -149,6 +164,12 @@ target_link_libraries(AnkiImage2Card PRIVATE
     ${TESSERACT_LIBRARIES}
     ${LEPTONICA_LIBRARIES}
 )
+
+if(APPLE)
+    target_link_libraries(AnkiImage2Card PRIVATE ${AVFOUNDATION_FRAMEWORK} ${FOUNDATION_FRAMEWORK})
+elseif(UNIX AND NOT APPLE)
+    target_link_libraries(AnkiImage2Card PRIVATE ${SPEECHD_LIBRARIES})
+endif()
 
 if(APPLE)
     # Copy assets to Resources directory

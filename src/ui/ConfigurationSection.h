@@ -59,6 +59,12 @@ public:
     {
       m_OnNoteTypeOrDeckChangedCallback = callback;
     }
+    void SetOnAudioProviderChangedCallback(std::function<void(const std::string&)> callback)
+    {
+      m_OnAudioProviderChangedCallback = callback;
+    }
+
+    void SetAudioProvider(AI::IAudioAIProvider* provider) { m_AudioAIProvider = provider; }
 
     void RenderAnkiConnectTab();
     void RenderOCRTab();
@@ -82,6 +88,7 @@ private:
     std::function<void()> m_OnConnectCallback;
     std::function<void(const std::string&)> m_OnTranslatorChangedCallback;
     std::function<void()> m_OnNoteTypeOrDeckChangedCallback;
+    std::function<void(const std::string&)> m_OnAudioProviderChangedCallback;
   };
 
 } // namespace Image2Card::UI

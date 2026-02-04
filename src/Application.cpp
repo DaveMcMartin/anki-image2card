@@ -14,6 +14,7 @@
 #include "IconsFontAwesome6.h"
 #include "ai/ElevenLabsAudioProvider.h"
 #include "ai/GoogleTextProvider.h"
+#include "ai/NativeAudioProvider.h"
 #include "ai/XAiTextProvider.h"
 #include "api/AnkiConnectClient.h"
 #include "config/ConfigManager.h"
@@ -228,7 +229,11 @@ namespace Image2Card
     }
 
     auto& config = m_ConfigManager->GetConfig();
-    m_AudioAIProvider = std::make_unique<AI::ElevenLabsAudioProvider>();
+    if (config.AudioProvider == "native") {
+      m_AudioAIProvider = std::make_unique<AI::NativeAudioProvider>();
+    } else {
+      m_AudioAIProvider = std::make_unique<AI::ElevenLabsAudioProvider>();
+    }
 
     m_TesseractOCRProvider = std::make_unique<OCR::TesseractOCRProvider>();
     std::string tessDataPath = m_BasePath + "tessdata";
@@ -321,6 +326,31 @@ namespace Image2Card
         m_SentenceAnalyzer->SetPreferredTranslator(translatorId);
       }
     });
+
+    m_ConfigurationSection->SetOnAudioProviderChangedCallback([this](const std::string& providerId) {
+      if (providerId == "native") {
+        m_AudioAIProvider = std::make_unique<AI::NativeAudioProvider>();
+      } else {
+        m_AudioAIProvider = std::make_unique<AI::ElevenLabsAudioProvider>();
+      }
+
+      nlohmann::json audioConfig;
+      audioConfig["api_key"] = m_ConfigManager->GetConfig().AudioApiKey;
+      audioConfig["voice_id"] = m_ConfigManager->GetConfig().AudioVoiceId;
+      audioConfig["audio_format"] = m_ConfigManager->GetConfig().AudioFormat;
+
+      nlohmann::json voicesJson = nlohmann::json::array();
+      for (const auto& voice : m_ConfigManager->GetConfig().AudioAvailableVoices) {
+        voicesJson.push_back({voice.first, voice.second});
+      }
+      audioConfig["available_voices"] = voicesJson;
+
+      m_AudioAIProvider->LoadConfig(audioConfig);
+      m_ConfigurationSection->SetAudioProvider(m_AudioAIProvider.get());
+
+      std::thread([this]() { m_AudioAIProvider->LoadRemoteVoices(); }).detach();
+    });
+
     m_AnkiCardSettingsSection =
         std::make_unique<UI::AnkiCardSettingsSection>(m_Renderer, m_AnkiConnectClient.get(), m_ConfigManager.get());
 

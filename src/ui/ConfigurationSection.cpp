@@ -324,7 +324,36 @@ namespace Image2Card::UI
     auto& config = m_ConfigManager->GetConfig();
 
     ImGui::Spacing();
-    ImGui::Text("ElevenLabs Audio");
+    ImGui::Text("Audio Configuration");
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    ImGui::Text("Audio Provider");
+    ImGui::SetNextItemWidth(-1);
+
+    // Simple combo for now
+    std::string currentProvider = config.AudioProvider;
+    if (currentProvider.empty())
+      currentProvider = "elevenlabs";
+
+    if (ImGui::BeginCombo("##AudioProvider", (currentProvider == "elevenlabs" ? "ElevenLabs" : "Native (OS Default)")))
+    {
+      if (ImGui::Selectable("ElevenLabs", currentProvider == "elevenlabs")) {
+        config.AudioProvider = "elevenlabs";
+        m_ConfigManager->Save();
+        if (m_OnAudioProviderChangedCallback)
+          m_OnAudioProviderChangedCallback("elevenlabs");
+      }
+      if (ImGui::Selectable("Native (OS Default)", currentProvider == "native")) {
+        config.AudioProvider = "native";
+        m_ConfigManager->Save();
+        if (m_OnAudioProviderChangedCallback)
+          m_OnAudioProviderChangedCallback("native");
+      }
+      ImGui::EndCombo();
+    }
+
+    ImGui::Spacing();
     ImGui::Separator();
     ImGui::Spacing();
 
