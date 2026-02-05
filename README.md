@@ -8,18 +8,18 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 - **Cross-Platform**: Runs on macOS, Windows, and Linux.
 - **Beautiful UI**: Built with SDL3 and Dear ImGui for a responsive and intuitive interface.
 - **Image Processing**: Drag and drop images, crop sections for analysis.
-- **AI Integration**:
-   - **OCR**: Integration with Gemini (Google) and xAI (Grok) for optical character recognition.
-   - **Translation**: Optional AI-powered sentence translation via Gemini, xAI, DeepL, or Google Translate.
-   - **Audio AI**: Integration with ElevenLabs for high-quality text-to-speech (fallback when Forvo is unavailable).
 - **Local Processing**:
-   - **Local OCR**: Multiple OCR options including Native OS (macOS Vision Framework, Windows Media OCR), Tesseract (offline), and AI (cloud-based).
-   - **Native OCR**: Built-in OS integration for fast, accurate text extraction (Vision framework on macOS, Windows Media OCR on Windows).
-   - **Tesseract OCR**: Offline text extraction with configurable text orientation (horizontal/vertical).
+  - **Local OCR**: Multiple OCR options including Native OS (macOS Vision Framework, Windows Media OCR), Tesseract (offline), and AI (cloud-based).
+  - **Native OCR**: Built-in OS integration for fast, accurate text extraction (Vision framework on macOS, Windows Media OCR on Windows).
+  - **Tesseract OCR**: Offline text extraction with configurable text orientation (horizontal/vertical).
   - **Mecab Morphological Analysis**: Local Japanese morphological analysis for accurate word parsing and sentence breakdown.
   - **JMDict Dictionary**: Offline dictionary lookup using SQLite database for word definitions.
   - **Pitch Accent Database**: Local pitch accent lookup for accurate pronunciation patterns.
   - **Forvo Audio**: Integration with Forvo for native speaker audio pronunciation.
+- **AI Integration (optional)**:
+  - **OCR**: Integration with Gemini (Google) and xAI (Grok).
+  - **Translation**: Optional AI-powered sentence translation via Gemini, xAI.
+  - **Audio AI**: Integration with ElevenLabs for high-quality text-to-speech (fallback when Forvo is unavailable).
 - **Anki Integration**: Connects directly to Anki via AnkiConnect to create cards automatically.
 - **Smart Fields**: Automatically detects and fills fields like Sentence, Translation, Target Word, Furigana, Pitch Accent, and Definitions.
 
@@ -86,15 +86,15 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 ## Project Structure
 
 - `src/` - Main application source code
-   - `ai/` - AI integration modules (includes platform-specific native TTS)
-   - `api/` - API clients (AnkiConnect)
-   - `audio/` - Audio processing and playback
-   - `config/` - Configuration management
-   - `core/` - Core functionality
-   - `language/` - Language utilities
-   - `ocr/` - OCR providers (Native OS, Tesseract, AI)
-   - `ui/` - User interface components
-   - `utils/` - Utility functions
+  - `ai/` - AI integration modules (includes platform-specific native TTS)
+  - `api/` - API clients (AnkiConnect)
+  - `audio/` - Audio processing and playback
+  - `config/` - Configuration management
+  - `core/` - Core functionality
+  - `language/` - Language utilities
+  - `ocr/` - OCR providers (Native OS, Tesseract, AI)
+  - `ui/` - User interface components
+  - `utils/` - Utility functions
 - `cmake/` - CMake build scripts and utilities
 - `docs/` - Documentation and screenshots
 - `assets/` - Application assets (icons, etc.)
@@ -103,12 +103,11 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 ## Usage
 
 1. **Configuration**:
-    - Go to the "Configuration" tab.
-    - Set up your AnkiConnect URL (default is usually `http://localhost:8765`).
-    - **OCR**: Choose from Native OS (built-in OS framework: Vision on macOS, Windows Media OCR on Windows), Tesseract (local, offline), or AI (cloud-based, more accurate).
-    - **Translation**: Select your preferred translation service for sentence translation (see details below).
-    - Enter API keys for the services you want to use (see "Service Configuration" section below).
-    - On the Card tab, select the Note Type, deck, and fields you want to fill.
+   - Open Anki
+   - Go to **AnkiConnect** tab and set up your AnkiConnect URL (default is usually `http://localhost:8765`), click connect and select a deck and note type.
+   - Go to the **OCR** tab: Choose from Native OS (built-in OS framework: Vision on macOS, Windows Media OCR on Windows), Tesseract (local, offline), or AI (cloud-based, more accurate).
+   - Go to the **Dictionary** tab: Select your preferred translation service for word definition and sentence translation.
+   - Go to the **Settings** tab: Enter API keys for the services you want to use if any.
 
 ### Service Configuration
 
@@ -117,9 +116,8 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 - **None**: No sentence translation (uses word dictionary only).
 - **DeepL**: Cloud-based translation service with high-quality results.
   - Sign up at [https://www.deepl.com/pro-api](https://www.deepl.com/pro-api)
-  - Paste your API key in the Configuration tab under "DeepL Translation"
+  - Paste your API key in the Settings tab under "DeepL Translation"
   - Choose between Free API (limited requests) or Pro API (unlimited with paid plan)
-  - Supports language selection: Japanese (JA) to English (EN-US/EN-GB)
   - Excellent for natural-sounding translations
 - **Google Translate**: Free cloud-based translation service.
   - No API key required - uses public Google Translate endpoint
@@ -128,12 +126,12 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 - **Gemini**: Google's advanced AI model for translation.
   - Get API key at [https://ai.google.dev/](https://ai.google.dev/)
   - Requires Google Cloud account setup
-  - Best quality translations but may be slower
-  - Paste API key in Configuration tab
-- **xAI**: Elon Musk's Grok AI model for translation.
+  - Best quality translations but may be slower depending on the selected model
+  - Paste API key in the Settings tab
+- **xAI**: Grok AI model for translation.
   - Get API key at [https://console.x.ai/](https://console.x.ai/)
-  - Provides high-quality translations
-  - Paste API key in Configuration tab
+  - Provides high-quality translations but may be slower depending on the selected model
+  - Paste API key in Settings tab
 
 **Word Dictionary Services**:
 
@@ -144,24 +142,24 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 - **xAI**: AI-powered definitions (same API key as translation).
 
 2. **Card Creation**:
-    - Drag and drop an image (e.g., a page from a manga or book) into the Image Section.
-    - Select the area you want to scan.
-    - If using Tesseract, select the text orientation (horizontal or vertical) using the buttons in the Image Section.
-    - Click "Scan" to extract text using your configured OCR method (Native OS, Tesseract, or AI).
-    - The app uses **local processing** for:
-      - Morphological analysis (Mecab)
-      - Word definitions (JMDict)
-      - Pitch accent patterns (local database)
-      - Furigana generation (Mecab-based)
-      - Audio pronunciation (Forvo, with AI fallback)
-    - Translation is handled by your selected translation service (or skipped if "None").
-    - Review the generated fields in the "Anki Card Settings" section.
-    - Click "Add" to create the card in Anki.
+   - Drag and drop an image (e.g., a page from a manga or book) into the Image Section.
+   - Select the area you want to scan.
+   - If using Tesseract, select the text orientation (horizontal or vertical) using the buttons in the Image Section.
+   - Click "Scan" to extract text using your configured OCR method (Native OS, Tesseract, or AI).
+   - The app uses **local processing** for:
+     - Morphological analysis (Mecab)
+     - Word definitions (JMDict)
+     - Pitch accent patterns (local database)
+     - Furigana generation (Mecab-based)
+     - Audio pronunciation (Forvo, with AI fallback)
+   - Translation is handled by your selected translation service (or skipped if "None").
+   - Review the generated fields in the **Card** tab.
+   - Click "Add" to create the card in Anki.
 
 ## FAQ
 
 1. **Which Note Type do you use?**
-   The "Japanese Sentence" note type from the Ankidrone Foundation deck.
+   The "Japanese Sentence" note type from the [Ankidrone Foundation](https://tatsumoto-ren.github.io/blog/jp1k-anki-deck.html) deck.
 
 2. **Can I use other AI/TTS providers?**
    The architecture is designed to be extensible. You can add new providers by implementing the appropriate interfaces in the `ai/` modules. Feel free to open a pull request if you have implemented a new provider.
@@ -197,9 +195,7 @@ This is a work in progress. Here are some planned features, it is not in priorit
 - [x] Add Mecab for local morphological analysis
 - [x] Add pitch accent database for accurate pronunciation patterns
 - [x] Add configurable translation services (DeepL, Google Translate, Gemini, xAI)
-- [ ] Add UI configuration for all translation services
-- [ ] Implement Native OCR for Windows (Windows.Media.Ocr API)
-- [ ] Replace Tesseract with PaddleOCR (better OCR engine for Japanese)
+- [x] Implement Native OCR for Windows (Windows.Media.Ocr API)
 
 ## Contributing
 
