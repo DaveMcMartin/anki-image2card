@@ -27,6 +27,7 @@
 #include "language/services/DeepLService.h"
 #include "language/services/GoogleTranslateService.h"
 #include "language/services/NoneTranslationService.h"
+#include "ocr/NativeOCRProvider.h"
 #include "ocr/TesseractOCRProvider.h"
 #include "stb_image.h"
 #include "ui/AnkiCardSettingsSection.h"
@@ -240,6 +241,13 @@ namespace Image2Card
     std::string tessLanguage = "jpn";
     if (!m_TesseractOCRProvider->Initialize(tessDataPath, tessLanguage)) {
       AF_WARN("Failed to initialize Tesseract OCR. AI OCR will be used as fallback.");
+    }
+
+    m_NativeOCRProvider = std::make_unique<OCR::NativeOCRProvider>();
+    if (m_NativeOCRProvider->IsInitialized()) {
+      AF_INFO("Native OCR provider initialized successfully");
+    } else {
+      AF_WARN("Native OCR provider not available on this platform");
     }
 
     {
@@ -674,7 +682,10 @@ namespace Image2Card
 
             std::string text;
 
-            if (ocrMethod == "Tesseract" && m_TesseractOCRProvider && m_TesseractOCRProvider->IsInitialized()) {
+            if (ocrMethod == "Native" && m_NativeOCRProvider && m_NativeOCRProvider->IsInitialized()) {
+              AF_INFO("Using Native OS OCR");
+              text = m_NativeOCRProvider->ExtractTextFromImage(imageBytes);
+            } else if (ocrMethod == "Tesseract" && m_TesseractOCRProvider && m_TesseractOCRProvider->IsInitialized()) {
               AF_INFO("Using Tesseract OCR with orientation: {}", tesseractOrientation);
 
               if (tesseractOrientation == "vertical") {

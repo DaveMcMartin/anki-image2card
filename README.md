@@ -9,11 +9,13 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 - **Beautiful UI**: Built with SDL3 and Dear ImGui for a responsive and intuitive interface.
 - **Image Processing**: Drag and drop images, crop sections for analysis.
 - **AI Integration**:
-  - **OCR**: Integration with Gemini (Google) and xAI (Grok) for optical character recognition.
-  - **Translation**: Optional AI-powered sentence translation via Gemini, xAI, DeepL, or Google Translate.
-  - **Audio AI**: Integration with ElevenLabs for high-quality text-to-speech (fallback when Forvo is unavailable).
+   - **OCR**: Integration with Gemini (Google) and xAI (Grok) for optical character recognition.
+   - **Translation**: Optional AI-powered sentence translation via Gemini, xAI, DeepL, or Google Translate.
+   - **Audio AI**: Integration with ElevenLabs for high-quality text-to-speech (fallback when Forvo is unavailable).
 - **Local Processing**:
-  - **Local OCR**: Built-in Tesseract OCR support for offline, fast text extraction with configurable text orientation (horizontal/vertical).
+   - **Local OCR**: Multiple OCR options including Native OS (macOS Vision Framework, Windows Media OCR), Tesseract (offline), and AI (cloud-based).
+   - **Native OCR**: Built-in OS integration for fast, accurate text extraction (Vision framework on macOS, Windows Media OCR on Windows).
+   - **Tesseract OCR**: Offline text extraction with configurable text orientation (horizontal/vertical).
   - **Mecab Morphological Analysis**: Local Japanese morphological analysis for accurate word parsing and sentence breakdown.
   - **JMDict Dictionary**: Offline dictionary lookup using SQLite database for word definitions.
   - **Pitch Accent Database**: Local pitch accent lookup for accurate pronunciation patterns.
@@ -36,11 +38,11 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 - **C++ Compiler**: A C++23 compatible compiler (Clang 17+, GCC 13+, MSVC 2022+).
 - **CMake**: Version 3.25 or higher.
 - **Git**: For fetching dependencies.
-- **Tesseract OCR**: Required for local OCR functionality.
+- **Tesseract OCR** (Optional): Required only if you want to use Tesseract for text extraction. Native OS OCR (macOS/Windows) and AI OCR are built-in.
   - **macOS**: `brew install tesseract`
   - **Linux**: `sudo apt-get install tesseract-ocr libtesseract-dev` (Ubuntu/Debian) or equivalent
   - **Windows**: Download from [UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki)
-- **Mecab**: Required for local morphological analysis.
+- **Mecab**: Required for local morphological analysis (Japanese word parsing).
   - **macOS**: `brew install mecab mecab-ipadic`
   - **Linux**: `sudo apt-get install mecab libmecab-dev mecab-ipadic-utf8` (Ubuntu/Debian) or equivalent
   - **Windows**: Download from [GitHub](https://github.com/ikegami-yukino/mecab/releases)
@@ -84,15 +86,15 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 ## Project Structure
 
 - `src/` - Main application source code
-  - `ai/` - AI integration modules
-  - `api/` - API clients (AnkiConnect)
-  - `audio/` - Audio processing and playback
-  - `config/` - Configuration management
-  - `core/` - Core functionality
-  - `language/` - Language utilities
-  - `ocr/` - OCR providers (Tesseract)
-  - `ui/` - User interface components
-  - `utils/` - Utility functions
+   - `ai/` - AI integration modules (includes platform-specific native TTS)
+   - `api/` - API clients (AnkiConnect)
+   - `audio/` - Audio processing and playback
+   - `config/` - Configuration management
+   - `core/` - Core functionality
+   - `language/` - Language utilities
+   - `ocr/` - OCR providers (Native OS, Tesseract, AI)
+   - `ui/` - User interface components
+   - `utils/` - Utility functions
 - `cmake/` - CMake build scripts and utilities
 - `docs/` - Documentation and screenshots
 - `assets/` - Application assets (icons, etc.)
@@ -101,40 +103,67 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 ## Usage
 
 1. **Configuration**:
-   - Go to the "Configuration" tab.
-   - Set up your AnkiConnect URL (default is usually `http://localhost:8765`).
-   - **OCR**: Choose between Tesseract (local, offline) or AI (cloud-based, more accurate).
-   - **Translation**: Select your preferred dictionary service (None, DeepL, Google Translate, Gemini, or xAI).
-   - Enter API keys for the services you want to use.
-   - On the Card tab, select the Note Type, deck, and fields you want to fill.
+    - Go to the "Configuration" tab.
+    - Set up your AnkiConnect URL (default is usually `http://localhost:8765`).
+    - **OCR**: Choose from Native OS (built-in OS framework: Vision on macOS, Windows Media OCR on Windows), Tesseract (local, offline), or AI (cloud-based, more accurate).
+    - **Translation**: Select your preferred translation service for sentence translation (see details below).
+    - Enter API keys for the services you want to use (see "Service Configuration" section below).
+    - On the Card tab, select the Note Type, deck, and fields you want to fill.
+
+### Service Configuration
+
+**Translation Services**:
+
+- **None**: No sentence translation (uses word dictionary only).
+- **DeepL**: Cloud-based translation service with high-quality results.
+  - Sign up at [https://www.deepl.com/pro-api](https://www.deepl.com/pro-api)
+  - Paste your API key in the Configuration tab under "DeepL Translation"
+  - Choose between Free API (limited requests) or Pro API (unlimited with paid plan)
+  - Supports language selection: Japanese (JA) to English (EN-US/EN-GB)
+  - Excellent for natural-sounding translations
+- **Google Translate**: Free cloud-based translation service.
+  - No API key required - uses public Google Translate endpoint
+  - Completely free to use
+  - Good for quick translations, though sometimes less natural than DeepL
+- **Gemini**: Google's advanced AI model for translation.
+  - Get API key at [https://ai.google.dev/](https://ai.google.dev/)
+  - Requires Google Cloud account setup
+  - Best quality translations but may be slower
+  - Paste API key in Configuration tab
+- **xAI**: Elon Musk's Grok AI model for translation.
+  - Get API key at [https://console.x.ai/](https://console.x.ai/)
+  - Provides high-quality translations
+  - Paste API key in Configuration tab
+
+**Word Dictionary Services**:
+
+- **JMDict**: Built-in offline Japanese dictionary (no API key needed).
+- **DeepL**: Uses DeepL API for word lookups (same API key as translation).
+- **Google Translate**: Free cloud-based word definitions.
+- **Gemini**: AI-powered definitions (same API key as translation).
+- **xAI**: AI-powered definitions (same API key as translation).
 
 2. **Card Creation**:
-   - Drag and drop an image (e.g., a page from a manga or book) into the Image Section.
-   - Select the area you want to scan.
-   - If using Tesseract, select the text orientation (horizontal or vertical) using the buttons in the Image Section.
-   - Click "Scan" to process the image with your configured OCR method.
-   - The app uses **local processing** for:
-     - Morphological analysis (Mecab)
-     - Word definitions (JMDict)
-     - Pitch accent patterns (local database)
-     - Furigana generation (Mecab-based)
-     - Audio pronunciation (Forvo, with AI fallback)
-   - Translation is handled by your selected dictionary service (or skipped if "None").
-   - Review the generated fields in the "Anki Card Settings" section.
-   - Click "Add" to create the card in Anki.
+    - Drag and drop an image (e.g., a page from a manga or book) into the Image Section.
+    - Select the area you want to scan.
+    - If using Tesseract, select the text orientation (horizontal or vertical) using the buttons in the Image Section.
+    - Click "Scan" to extract text using your configured OCR method (Native OS, Tesseract, or AI).
+    - The app uses **local processing** for:
+      - Morphological analysis (Mecab)
+      - Word definitions (JMDict)
+      - Pitch accent patterns (local database)
+      - Furigana generation (Mecab-based)
+      - Audio pronunciation (Forvo, with AI fallback)
+    - Translation is handled by your selected translation service (or skipped if "None").
+    - Review the generated fields in the "Anki Card Settings" section.
+    - Click "Add" to create the card in Anki.
 
 ## FAQ
 
-1. **Why only Google and xAI?**
-   If you are mining sentences from manga, you'll find out that many AI providers refuse requests due to content concerns. I initially tried using Grok because it is uncensored, but its OCR is simply horrible, so I had to implement Gemini.
-
-2. **Why ElevenLabs?**
-   The best quality per price available, with easy integration for adding other TTS providers.
-
-3. **Which Note Type do you use?**
+1. **Which Note Type do you use?**
    The "Japanese Sentence" note type from the Ankidrone Foundation deck.
 
-4. **Can I use other AI/TTS providers?**
+2. **Can I use other AI/TTS providers?**
    The architecture is designed to be extensible. You can add new providers by implementing the appropriate interfaces in the `ai/` modules. Feel free to open a pull request if you have implemented a new provider.
 
 ## Dependencies
@@ -160,6 +189,8 @@ This is a work in progress. Here are some planned features, it is not in priorit
 
 - [ ] Github Action on release that generates binaries for Windows, macOS, and Linux.
 - [x] Add local OCR option with Tesseract with configurable text orientation
+- [x] Add Native OS OCR (macOS Vision framework, Windows Media OCR)
+- [ ] Add Native OCR for Linux (research and implementation)
 - [x] Add support for multiple images
 - [x] Replace AI dictionary with local JMDict
 - [x] Get vocab audio from Forvo (with AI fallback)
@@ -167,8 +198,8 @@ This is a work in progress. Here are some planned features, it is not in priorit
 - [x] Add pitch accent database for accurate pronunciation patterns
 - [x] Add configurable translation services (DeepL, Google Translate, Gemini, xAI)
 - [ ] Add UI configuration for all translation services
-- [ ] Add local audio generation (TTS)
-- [ ] Add PaddleOCR (better OCR engine than Tesseract for Japanese)
+- [ ] Implement Native OCR for Windows (Windows.Media.Ocr API)
+- [ ] Replace Tesseract with PaddleOCR (better OCR engine for Japanese)
 
 ## Contributing
 

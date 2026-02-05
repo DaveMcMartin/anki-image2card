@@ -14,7 +14,8 @@ struct SDL_Renderer;
 namespace Image2Card::OCR
 {
   class TesseractOCRProvider;
-}
+  class NativeOCRProvider;
+} // namespace Image2Card::OCR
 
 namespace Image2Card::Language::Analyzer
 {
@@ -117,6 +118,7 @@ private:
     std::unique_ptr<AI::IAudioAIProvider> m_AudioAIProvider;
 
     std::unique_ptr<OCR::TesseractOCRProvider> m_TesseractOCRProvider;
+    std::unique_ptr<OCR::NativeOCRProvider> m_NativeOCRProvider;
 
     std::vector<std::unique_ptr<Language::Services::ILanguageService>> m_LanguageServices;
     std::unique_ptr<Language::Analyzer::SentenceAnalyzer> m_SentenceAnalyzer;

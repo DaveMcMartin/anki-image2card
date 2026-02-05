@@ -147,7 +147,20 @@ namespace Image2Card::UI
     ImGui::Spacing();
 
     bool isTesseract = (config.OCRMethod == "Tesseract");
+    bool isNative = (config.OCRMethod == "Native");
     bool isAI = (config.OCRMethod == "AI");
+
+#ifdef __APPLE__
+    if (ImGui::RadioButton("Native OS (macOS Vision Framework)", isNative)) {
+      config.OCRMethod = "Native";
+      m_ConfigManager->Save();
+    }
+#elif _WIN32
+    if (ImGui::RadioButton("Native OS (Windows Media OCR)", isNative)) {
+      config.OCRMethod = "Native";
+      m_ConfigManager->Save();
+    }
+#endif
 
     if (ImGui::RadioButton("Tesseract (Local, Offline)", isTesseract)) {
       config.OCRMethod = "Tesseract";

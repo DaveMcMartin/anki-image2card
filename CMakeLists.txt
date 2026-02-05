@@ -107,17 +107,28 @@ file(GLOB_RECURSE SOURCES
     "src/*.h"
 )
 
-# Remove platform specific TTS implementations from the glob
 list(FILTER SOURCES EXCLUDE REGEX "src/ai/native/NativeAudioProvider_.*")
+list(FILTER SOURCES EXCLUDE REGEX "src/ocr/native/NativeOCRProvider_.*")
 
 if(APPLE)
     list(APPEND SOURCES "src/ai/native/NativeAudioProvider_Mac.mm")
+    list(APPEND SOURCES "src/ocr/native/NativeOCRProvider_Mac.mm")
     find_library(AVFOUNDATION_FRAMEWORK AVFoundation)
     find_library(FOUNDATION_FRAMEWORK Foundation)
+    find_library(VISION_FRAMEWORK Vision)
 elseif(WIN32)
     list(APPEND SOURCES "src/ai/native/NativeAudioProvider_Windows.cpp")
+    list(APPEND SOURCES "src/ocr/native/NativeOCRProvider_Windows.cpp")
+    # Enable WinRT support for Windows OCR
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /std:c++latest")
+    # Enable Windows Runtime Library option for WinRT
+    set_source_files_properties(
+        "src/ocr/native/NativeOCRProvider_Windows.cpp"
+        PROPERTIES COMPILE_FLAGS "/std:c++latest /EHsc"
+    )
 elseif(UNIX AND NOT APPLE)
     list(APPEND SOURCES "src/ai/native/NativeAudioProvider_Linux.cpp")
+    list(APPEND SOURCES "src/ocr/native/NativeOCRProvider_Linux.cpp")
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SPEECHD REQUIRED speech-dispatcher)
 endif()
@@ -166,7 +177,7 @@ target_link_libraries(AnkiImage2Card PRIVATE
 )
 
 if(APPLE)
-    target_link_libraries(AnkiImage2Card PRIVATE ${AVFOUNDATION_FRAMEWORK} ${FOUNDATION_FRAMEWORK})
+    target_link_libraries(AnkiImage2Card PRIVATE ${AVFOUNDATION_FRAMEWORK} ${FOUNDATION_FRAMEWORK} ${VISION_FRAMEWORK})
 elseif(UNIX AND NOT APPLE)
     target_link_libraries(AnkiImage2Card PRIVATE ${SPEECHD_LIBRARIES})
 endif()
