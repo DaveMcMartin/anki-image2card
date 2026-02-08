@@ -21,8 +21,7 @@ public:
 
     std::string GetOCRSystemPrompt() const override
     {
-      return "You are an expert OCR system specialized in Japanese text recognition. You extract text exactly as it "
-             "appears, preserving accuracy.";
+      return "You are an advanced OCR engine specialized in Japanese text digitization. Your goal is high-fidelity character transcription, prioritizing the original visual structure.";
     }
 
     std::string GetOCRUserPrompt() const override
@@ -37,6 +36,7 @@ IMPORTANT INSTRUCTIONS:
 - Preserve the exact characters including kanji, hiragana, katakana
 - Include all punctuation marks (。、！？「」etc.)
 - Preserve line breaks and text order
+- Do NOT include furigana
 - Do NOT translate, romanize, or add explanations
 - Return ONLY the extracted Japanese text, nothing else
 
