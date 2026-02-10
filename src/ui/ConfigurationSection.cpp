@@ -9,6 +9,7 @@
 #include "ai/ITextAIProvider.h"
 #include "api/AnkiConnectClient.h"
 #include "config/ConfigManager.h"
+#include "core/Logger.h"
 #include "language/ILanguage.h"
 #include "language/services/ILanguageService.h"
 
@@ -349,13 +350,24 @@ namespace Image2Card::UI
     if (currentProvider.empty())
       currentProvider = "elevenlabs";
 
-    if (ImGui::BeginCombo("##AudioProvider", (currentProvider == "elevenlabs" ? "ElevenLabs" : "Native (OS Default)")))
-    {
+    std::string providerLabel = "ElevenLabs";
+    if (currentProvider == "native")
+      providerLabel = "Native (OS Default)";
+    else if (currentProvider == "minimax")
+      providerLabel = "MiniMax";
+
+    if (ImGui::BeginCombo("##AudioProvider", providerLabel.c_str())) {
       if (ImGui::Selectable("ElevenLabs", currentProvider == "elevenlabs")) {
         config.AudioProvider = "elevenlabs";
         m_ConfigManager->Save();
         if (m_OnAudioProviderChangedCallback)
           m_OnAudioProviderChangedCallback("elevenlabs");
+      }
+      if (ImGui::Selectable("MiniMax", currentProvider == "minimax")) {
+        config.AudioProvider = "minimax";
+        m_ConfigManager->Save();
+        if (m_OnAudioProviderChangedCallback)
+          m_OnAudioProviderChangedCallback("minimax");
       }
       if (ImGui::Selectable("Native (OS Default)", currentProvider == "native")) {
         config.AudioProvider = "native";
@@ -374,18 +386,35 @@ namespace Image2Card::UI
       if (m_AudioAIProvider->RenderConfigurationUI()) {
         auto j = m_AudioAIProvider->SaveConfig();
 
-        if (j.contains("api_key"))
-          config.AudioApiKey = j["api_key"];
-        if (j.contains("voice_id"))
-          config.AudioVoiceId = j["voice_id"];
-        if (j.contains("audio_format"))
-          config.AudioFormat = j["audio_format"];
+        if (config.AudioProvider == "minimax") {
+          if (j.contains("api_key"))
+            config.MiniMaxApiKey = j["api_key"];
+          if (j.contains("voice_id"))
+            config.MiniMaxVoiceId = j["voice_id"];
+          if (j.contains("model"))
+            config.MiniMaxModel = j["model"];
 
-        if (j.contains("available_voices")) {
-          config.AudioAvailableVoices.clear();
-          for (const auto& item : j["available_voices"]) {
-            if (item.is_array() && item.size() == 2) {
-              config.AudioAvailableVoices.push_back({item[0], item[1]});
+          if (j.contains("available_voices")) {
+            config.MiniMaxAvailableVoices.clear();
+            for (const auto& item : j["available_voices"]) {
+              if (item.is_array() && item.size() == 2) {
+                config.MiniMaxAvailableVoices.push_back({item[0], item[1]});
+              }
+            }
+            AF_INFO("Updated MiniMax available voices: {} voices", config.MiniMaxAvailableVoices.size());
+          }
+        } else {
+          if (j.contains("api_key"))
+            config.ElevenLabsApiKey = j["api_key"];
+          if (j.contains("voice_id"))
+            config.ElevenLabsVoiceId = j["voice_id"];
+
+          if (j.contains("available_voices")) {
+            config.ElevenLabsAvailableVoices.clear();
+            for (const auto& item : j["available_voices"]) {
+              if (item.is_array() && item.size() == 2) {
+                config.ElevenLabsAvailableVoices.push_back({item[0], item[1]});
+              }
             }
           }
         }
@@ -397,22 +426,30 @@ namespace Image2Card::UI
       ImGui::Text("Voice Model");
       ImGui::SetNextItemWidth(-1);
 
+      auto& availableVoices =
+          config.AudioProvider == "minimax" ? config.MiniMaxAvailableVoices : config.ElevenLabsAvailableVoices;
+      std::string providerPrefix = config.AudioProvider == "minimax" ? "MiniMax/" : "ElevenLabs/";
+
       std::string currentVoiceLabel = config.SelectedVoiceModel;
-      for (const auto& voice : config.AudioAvailableVoices) {
-        if ("ElevenLabs/" + voice.first == config.SelectedVoiceModel) {
-          currentVoiceLabel = "ElevenLabs/" + voice.second;
+      for (const auto& voice : availableVoices) {
+        if (providerPrefix + voice.first == config.SelectedVoiceModel) {
+          currentVoiceLabel = providerPrefix + voice.second;
           break;
         }
       }
 
       if (ImGui::BeginCombo("##VoiceModel", currentVoiceLabel.c_str())) {
-        for (const auto& voice : config.AudioAvailableVoices) {
-          std::string label = "ElevenLabs/" + voice.second;
-          std::string value = "ElevenLabs/" + voice.first;
+        for (const auto& voice : availableVoices) {
+          std::string label = providerPrefix + voice.second;
+          std::string value = providerPrefix + voice.first;
           bool isSelected = (config.SelectedVoiceModel == value);
           if (ImGui::Selectable(label.c_str(), isSelected)) {
             config.SelectedVoiceModel = value;
-            config.AudioVoiceId = voice.first;
+            if (config.AudioProvider == "minimax") {
+              config.MiniMaxVoiceId = voice.first;
+            } else {
+              config.ElevenLabsVoiceId = voice.first;
+            }
             m_ConfigManager->Save();
           }
           if (isSelected)
@@ -422,13 +459,15 @@ namespace Image2Card::UI
       }
 
       ImGui::Spacing();
+
       ImGui::Text("Audio Format");
       ImGui::SetNextItemWidth(-1);
 
-      if (ImGui::BeginCombo("##AudioFormat", config.AudioFormat.c_str())) {
+      std::string currentFormat = config.AudioFormat;
+      if (ImGui::BeginCombo("##AudioFormat", currentFormat.c_str())) {
         const char* formats[] = {"mp3", "opus"};
         for (const char* format : formats) {
-          bool isSelected = (config.AudioFormat == format);
+          bool isSelected = (currentFormat == format);
           if (ImGui::Selectable(format, isSelected)) {
             config.AudioFormat = format;
             m_ConfigManager->Save();
@@ -438,6 +477,7 @@ namespace Image2Card::UI
         }
         ImGui::EndCombo();
       }
+      ImGui::Spacing();
     }
 
     ImGui::Spacing();

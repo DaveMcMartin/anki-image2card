@@ -9,21 +9,22 @@
 namespace Image2Card::AI
 {
 
-  struct ElevenLabsVoice
+  struct MiniMaxVoice
   {
     std::string Id;
     std::string Name;
+    std::string Type;
   };
 
-  class ElevenLabsAudioProvider : public IAudioAIProvider
+  class MiniMaxAudioProvider : public IAudioAIProvider
   {
 public:
 
-    ElevenLabsAudioProvider();
-    ~ElevenLabsAudioProvider() override;
+    MiniMaxAudioProvider();
+    ~MiniMaxAudioProvider() override;
 
-    std::string GetName() const override { return "ElevenLabs"; }
-    std::string GetId() const override { return "elevenlabs"; }
+    std::string GetName() const override { return "MiniMax"; }
+    std::string GetId() const override { return "minimax"; }
 
     bool RenderConfigurationUI() override;
 
@@ -39,16 +40,22 @@ public:
                                              const std::string& languageCode = "",
                                              const std::string& format = "mp3") override;
 
-    const std::vector<ElevenLabsVoice>& GetAvailableVoices() const { return m_AvailableVoices; }
+    const std::vector<MiniMaxVoice>& GetAvailableVoices() const { return m_AvailableVoices; }
     const std::string& GetCurrentVoiceId() const override { return m_VoiceId; }
     void SetVoiceId(const std::string& voiceId) override { m_VoiceId = voiceId; }
 
+    const std::string& GetModel() const { return m_Model; }
+    void SetModel(const std::string& model) { m_Model = model; }
+
 private:
+
+    std::vector<unsigned char> ConvertMp3ToOgg(const std::vector<unsigned char>& mp3Data);
 
     std::string m_ApiKey;
     std::string m_VoiceId;
+    std::string m_Model = "speech-2.8-hd";
 
-    std::vector<ElevenLabsVoice> m_AvailableVoices;
+    std::vector<MiniMaxVoice> m_AvailableVoices;
     bool m_IsLoadingVoices = false;
     std::string m_StatusMessage;
     std::atomic<bool> m_VoicesUpdated{false};

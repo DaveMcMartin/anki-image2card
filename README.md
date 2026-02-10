@@ -19,7 +19,7 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 - **AI Integration (optional)**:
   - **OCR**: Integration with Gemini (Google) and xAI (Grok).
   - **Translation**: Optional AI-powered sentence translation via Gemini, xAI.
-  - **Audio AI**: Integration with ElevenLabs for high-quality text-to-speech (fallback when Forvo is unavailable).
+  - **Audio AI**: Integration with ElevenLabs and MiniMax for high-quality text-to-speech (fallback when Forvo is unavailable).
 - **Anki Integration**: Connects directly to Anki via AnkiConnect to create cards automatically.
 - **Smart Fields**: Automatically detects and fills fields like Sentence, Translation, Target Word, Furigana, Pitch Accent, and Definitions.
 

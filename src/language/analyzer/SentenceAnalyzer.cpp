@@ -114,17 +114,18 @@ namespace Image2Card::Language::Analyzer
       std::string dictionaryForm = GetDictionaryForm(focusWord);
       std::string reading = GetReading(focusWord);
 
-      // Generate furigana for the target word
+      // Generate furigana for the target word (use dictionary form if available)
       std::string targetWordFurigana;
+      std::string wordForFurigana = dictionaryForm.empty() ? focusWord : dictionaryForm;
       if (m_FuriganaGen && !reading.empty()) {
         try {
-          targetWordFurigana = m_FuriganaGen->GenerateForWord(focusWord);
+          targetWordFurigana = m_FuriganaGen->GenerateForWord(wordForFurigana);
         } catch (const std::exception& e) {
           AF_WARN("Failed to generate target word furigana: {}", e.what());
-          targetWordFurigana = focusWord;
+          targetWordFurigana = wordForFurigana;
         }
       } else {
-        targetWordFurigana = focusWord;
+        targetWordFurigana = wordForFurigana;
       }
 
       // Look up the definition
@@ -172,32 +173,58 @@ namespace Image2Card::Language::Analyzer
       }
 
       // Highlight target word in furigana
+      // Strategy: Replace the focusWord in the plain sentence with a marker,
+      // then use the same marker position logic in the furigana string
       std::string highlightedFurigana = sentenceWithFurigana;
-      std::string targetPattern = " " + focusWord + "[";
-      size_t furiganaPos = highlightedFurigana.find(targetPattern);
+
+      size_t furiganaPos = highlightedFurigana.find(focusWord);
       if (furiganaPos != std::string::npos) {
-        size_t endPos = highlightedFurigana.find("]", furiganaPos);
-        if (endPos != std::string::npos) {
-          std::string wordWithFurigana = highlightedFurigana.substr(furiganaPos + 1, endPos - furiganaPos);
-          highlightedFurigana.replace(
-              furiganaPos + 1, endPos - furiganaPos, "<b style=\"color: green;\">" + wordWithFurigana + "</b>");
-        }
+        // Simple case: the exact word appears in furigana (all hiragana or not split by furigana brackets)
+        highlightedFurigana.replace(
+            furiganaPos, focusWord.length(), "<b style=\"color: green;\">" + focusWord + "</b>");
       } else {
-        // Try without leading space
-        targetPattern = focusWord + "[";
-        furiganaPos = highlightedFurigana.find(targetPattern);
-        if (furiganaPos != std::string::npos) {
-          size_t endPos = highlightedFurigana.find("]", furiganaPos);
-          if (endPos != std::string::npos) {
-            std::string wordWithFurigana = highlightedFurigana.substr(furiganaPos, endPos - furiganaPos + 1);
-            highlightedFurigana.replace(
-                furiganaPos, endPos - furiganaPos + 1, "<b style=\"color: green;\">" + wordWithFurigana + "</b>");
+        // Complex case: word might be split by furigana brackets like "素[そ]な"
+        // We need to find where focusWord appears in the original sentence and highlight the same region in furigana
+        size_t sentencePos = sentence.find(focusWord);
+        if (sentencePos != std::string::npos) {
+          // Build a version of furigana without brackets to find positions
+          std::string furiganaWithoutBrackets;
+          std::vector<size_t> positionMap; // Maps position in furiganaWithoutBrackets to position in original furigana
+
+          for (size_t i = 0; i < highlightedFurigana.length(); ++i) {
+            if (highlightedFurigana[i] == '[') {
+              // Skip until ]
+              while (i < highlightedFurigana.length() && highlightedFurigana[i] != ']') {
+                i++;
+              }
+            } else if (highlightedFurigana[i] != ' ') {
+              positionMap.push_back(i);
+              furiganaWithoutBrackets += highlightedFurigana[i];
+            }
           }
-        } else {
-          // Fallback: just try to find and highlight the word without furigana brackets
-          pos = highlightedFurigana.find(focusWord);
-          if (pos != std::string::npos) {
-            highlightedFurigana.replace(pos, focusWord.length(), "<b style=\"color: green;\">" + focusWord + "</b>");
+
+          // Find focusWord in the bracket-free version
+          size_t cleanPos = furiganaWithoutBrackets.find(focusWord);
+          if (cleanPos != std::string::npos && cleanPos < positionMap.size()) {
+            size_t startPos = positionMap[cleanPos];
+            size_t endIndex = cleanPos + focusWord.length() - 1;
+            size_t endPos = (endIndex < positionMap.size()) ? positionMap[endIndex] + 1 : highlightedFurigana.length();
+
+            // Check if endPos lands inside a furigana bracket and extend to include the closing ]
+            if (endPos < highlightedFurigana.length()) {
+              size_t scanPos = endPos;
+              while (scanPos < highlightedFurigana.length() && highlightedFurigana[scanPos] != ' ') {
+                if (highlightedFurigana[scanPos] == ']') {
+                  endPos = scanPos + 1;
+                  break;
+                }
+                scanPos++;
+              }
+            }
+
+            std::string wordWithFurigana = highlightedFurigana.substr(startPos, endPos - startPos);
+            highlightedFurigana.replace(
+                startPos, endPos - startPos, "<b style=\"color: green;\">" + wordWithFurigana + "</b>");
           }
         }
       }

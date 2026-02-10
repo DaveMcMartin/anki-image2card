@@ -62,17 +62,50 @@ namespace Image2Card::Config
       if (j.contains("google_model") && m_Config.SelectedVisionModel.empty()) {
         m_Config.SelectedVisionModel = "Google/" + j["google_model"].get<std::string>();
       }
-      if (j.contains("audio_api_key"))
-        m_Config.AudioApiKey = j["audio_api_key"];
-      if (j.contains("audio_voice_id"))
-        m_Config.AudioVoiceId = j["audio_voice_id"];
-      if (j.contains("audio_available_voices")) {
-        m_Config.AudioAvailableVoices.clear();
-        for (const auto& item : j["audio_available_voices"]) {
+
+      if (j.contains("elevenlabs_api_key"))
+        m_Config.ElevenLabsApiKey = j["elevenlabs_api_key"];
+      if (j.contains("elevenlabs_voice_id"))
+        m_Config.ElevenLabsVoiceId = j["elevenlabs_voice_id"];
+      if (j.contains("elevenlabs_available_voices")) {
+        m_Config.ElevenLabsAvailableVoices.clear();
+        for (const auto& item : j["elevenlabs_available_voices"]) {
           if (item.is_array() && item.size() == 2) {
-            m_Config.AudioAvailableVoices.push_back({item[0], item[1]});
+            m_Config.ElevenLabsAvailableVoices.push_back({item[0], item[1]});
           }
         }
+      }
+
+      if (j.contains("minimax_api_key"))
+        m_Config.MiniMaxApiKey = j["minimax_api_key"];
+      if (j.contains("minimax_voice_id"))
+        m_Config.MiniMaxVoiceId = j["minimax_voice_id"];
+      if (j.contains("minimax_model"))
+        m_Config.MiniMaxModel = j["minimax_model"];
+      if (j.contains("minimax_available_voices")) {
+        m_Config.MiniMaxAvailableVoices.clear();
+        for (const auto& item : j["minimax_available_voices"]) {
+          if (item.is_array() && item.size() == 2) {
+            m_Config.MiniMaxAvailableVoices.push_back({item[0], item[1]});
+          }
+        }
+      }
+
+      if (j.contains("audio_api_key") && m_Config.ElevenLabsApiKey.empty()) {
+        m_Config.ElevenLabsApiKey = j["audio_api_key"];
+      }
+      if (j.contains("audio_voice_id") && m_Config.ElevenLabsVoiceId.empty()) {
+        m_Config.ElevenLabsVoiceId = j["audio_voice_id"];
+      }
+      if (j.contains("audio_available_voices") && m_Config.ElevenLabsAvailableVoices.empty()) {
+        for (const auto& item : j["audio_available_voices"]) {
+          if (item.is_array() && item.size() == 2) {
+            m_Config.ElevenLabsAvailableVoices.push_back({item[0], item[1]});
+          }
+        }
+      }
+      if (j.contains("audio_format")) {
+        m_Config.AudioFormat = j["audio_format"];
       }
 
       if (j.contains("ocr_method"))
@@ -80,8 +113,6 @@ namespace Image2Card::Config
       if (j.contains("tesseract_orientation"))
         m_Config.TesseractOrientation = j["tesseract_orientation"];
 
-      if (j.contains("audio_format"))
-        m_Config.AudioFormat = j["audio_format"];
       if (j.contains("audio_provider"))
         m_Config.AudioProvider = j["audio_provider"];
 
@@ -138,20 +169,31 @@ namespace Image2Card::Config
 
     j["google_api_key"] = m_Config.GoogleApiKey;
     j["google_available_models"] = m_Config.GoogleAvailableModels;
-    j["audio_api_key"] = m_Config.AudioApiKey;
-    j["audio_voice_id"] = m_Config.AudioVoiceId;
 
-    nlohmann::json voicesJson = nlohmann::json::array();
-    for (const auto& voice : m_Config.AudioAvailableVoices) {
-      voicesJson.push_back({voice.first, voice.second});
+    j["elevenlabs_api_key"] = m_Config.ElevenLabsApiKey;
+    j["elevenlabs_voice_id"] = m_Config.ElevenLabsVoiceId;
+
+    nlohmann::json elevenLabsVoicesJson = nlohmann::json::array();
+    for (const auto& voice : m_Config.ElevenLabsAvailableVoices) {
+      elevenLabsVoicesJson.push_back({voice.first, voice.second});
     }
-    j["audio_available_voices"] = voicesJson;
+    j["elevenlabs_available_voices"] = elevenLabsVoicesJson;
+
+    j["minimax_api_key"] = m_Config.MiniMaxApiKey;
+    j["minimax_voice_id"] = m_Config.MiniMaxVoiceId;
+    j["minimax_model"] = m_Config.MiniMaxModel;
+
+    nlohmann::json minimaxVoicesJson = nlohmann::json::array();
+    for (const auto& voice : m_Config.MiniMaxAvailableVoices) {
+      minimaxVoicesJson.push_back({voice.first, voice.second});
+    }
+    j["minimax_available_voices"] = minimaxVoicesJson;
 
     j["ocr_method"] = m_Config.OCRMethod;
     j["tesseract_orientation"] = m_Config.TesseractOrientation;
 
-    j["audio_format"] = m_Config.AudioFormat;
     j["audio_provider"] = m_Config.AudioProvider;
+    j["audio_format"] = m_Config.AudioFormat;
 
     j["deepl_api_key"] = m_Config.DeepLApiKey;
     j["deepl_use_free_api"] = m_Config.DeepLUseFreeAPI;

@@ -14,6 +14,7 @@
 #include "IconsFontAwesome6.h"
 #include "ai/ElevenLabsAudioProvider.h"
 #include "ai/GoogleTextProvider.h"
+#include "ai/MiniMaxAudioProvider.h"
 #include "ai/NativeAudioProvider.h"
 #include "ai/XAiTextProvider.h"
 #include "api/AnkiConnectClient.h"
@@ -232,6 +233,8 @@ namespace Image2Card
     auto& config = m_ConfigManager->GetConfig();
     if (config.AudioProvider == "native") {
       m_AudioAIProvider = std::make_unique<AI::NativeAudioProvider>();
+    } else if (config.AudioProvider == "minimax") {
+      m_AudioAIProvider = std::make_unique<AI::MiniMaxAudioProvider>();
     } else {
       m_AudioAIProvider = std::make_unique<AI::ElevenLabsAudioProvider>();
     }
@@ -252,21 +255,39 @@ namespace Image2Card
 
     {
       nlohmann::json audioConfig;
-      audioConfig["api_key"] = m_ConfigManager->GetConfig().AudioApiKey;
-      audioConfig["voice_id"] = m_ConfigManager->GetConfig().AudioVoiceId;
-      audioConfig["audio_format"] = m_ConfigManager->GetConfig().AudioFormat;
+      auto& config = m_ConfigManager->GetConfig();
 
-      nlohmann::json voicesJson = nlohmann::json::array();
-      for (const auto& voice : m_ConfigManager->GetConfig().AudioAvailableVoices) {
-        voicesJson.push_back({voice.first, voice.second});
+      if (config.AudioProvider == "minimax") {
+        audioConfig["api_key"] = config.MiniMaxApiKey;
+        audioConfig["voice_id"] = config.MiniMaxVoiceId;
+        audioConfig["model"] = config.MiniMaxModel;
+
+        nlohmann::json voicesJson = nlohmann::json::array();
+        for (const auto& voice : config.MiniMaxAvailableVoices) {
+          voicesJson.push_back({voice.first, voice.second});
+        }
+        audioConfig["available_voices"] = voicesJson;
+      } else {
+        audioConfig["api_key"] = config.ElevenLabsApiKey;
+        audioConfig["voice_id"] = config.ElevenLabsVoiceId;
+
+        nlohmann::json voicesJson = nlohmann::json::array();
+        for (const auto& voice : config.ElevenLabsAvailableVoices) {
+          voicesJson.push_back({voice.first, voice.second});
+        }
+        audioConfig["available_voices"] = voicesJson;
       }
-      audioConfig["available_voices"] = voicesJson;
 
       m_AudioAIProvider->LoadConfig(audioConfig);
     }
 
     if (m_ConfigManager->GetConfig().SelectedVoiceModel.empty()) {
-      m_ConfigManager->GetConfig().SelectedVoiceModel = "ElevenLabs/" + m_ConfigManager->GetConfig().AudioVoiceId;
+      auto& config = m_ConfigManager->GetConfig();
+      if (config.AudioProvider == "minimax") {
+        config.SelectedVoiceModel = "MiniMax/" + config.MiniMaxVoiceId;
+      } else {
+        config.SelectedVoiceModel = "ElevenLabs/" + config.ElevenLabsVoiceId;
+      }
     }
 
     auto noneService = std::make_unique<Language::Services::NoneTranslationService>();
@@ -338,20 +359,35 @@ namespace Image2Card
     m_ConfigurationSection->SetOnAudioProviderChangedCallback([this](const std::string& providerId) {
       if (providerId == "native") {
         m_AudioAIProvider = std::make_unique<AI::NativeAudioProvider>();
+      } else if (providerId == "minimax") {
+        m_AudioAIProvider = std::make_unique<AI::MiniMaxAudioProvider>();
       } else {
         m_AudioAIProvider = std::make_unique<AI::ElevenLabsAudioProvider>();
       }
 
       nlohmann::json audioConfig;
-      audioConfig["api_key"] = m_ConfigManager->GetConfig().AudioApiKey;
-      audioConfig["voice_id"] = m_ConfigManager->GetConfig().AudioVoiceId;
-      audioConfig["audio_format"] = m_ConfigManager->GetConfig().AudioFormat;
+      auto& config = m_ConfigManager->GetConfig();
 
-      nlohmann::json voicesJson = nlohmann::json::array();
-      for (const auto& voice : m_ConfigManager->GetConfig().AudioAvailableVoices) {
-        voicesJson.push_back({voice.first, voice.second});
+      if (providerId == "minimax") {
+        audioConfig["api_key"] = config.MiniMaxApiKey;
+        audioConfig["voice_id"] = config.MiniMaxVoiceId;
+        audioConfig["model"] = config.MiniMaxModel;
+
+        nlohmann::json voicesJson = nlohmann::json::array();
+        for (const auto& voice : config.MiniMaxAvailableVoices) {
+          voicesJson.push_back({voice.first, voice.second});
+        }
+        audioConfig["available_voices"] = voicesJson;
+      } else if (providerId == "elevenlabs") {
+        audioConfig["api_key"] = config.ElevenLabsApiKey;
+        audioConfig["voice_id"] = config.ElevenLabsVoiceId;
+
+        nlohmann::json voicesJson = nlohmann::json::array();
+        for (const auto& voice : config.ElevenLabsAvailableVoices) {
+          voicesJson.push_back({voice.first, voice.second});
+        }
+        audioConfig["available_voices"] = voicesJson;
       }
-      audioConfig["available_voices"] = voicesJson;
 
       m_AudioAIProvider->LoadConfig(audioConfig);
       m_ConfigurationSection->SetAudioProvider(m_AudioAIProvider.get());
@@ -766,7 +802,12 @@ namespace Image2Card
       m_ScanSentence = ocrResult;
       m_ScanTargetWord = "";
 
-      m_ScanVoice = m_ConfigManager->GetConfig().AudioVoiceId;
+      auto& config = m_ConfigManager->GetConfig();
+      if (config.AudioProvider == "minimax") {
+        m_ScanVoice = config.MiniMaxVoiceId;
+      } else {
+        m_ScanVoice = config.ElevenLabsVoiceId;
+      }
 
       m_ScanSentence.reserve(256);
       m_ScanTargetWord.reserve(64);
@@ -847,6 +888,13 @@ namespace Image2Card
       if (m_AudioAIProvider) {
         if (m_AudioAIProvider->RenderVoiceSelector("Voice", &m_ScanVoice)) {
           m_AudioAIProvider->SetVoiceId(m_ScanVoice);
+          auto& config = m_ConfigManager->GetConfig();
+          if (config.AudioProvider == "minimax") {
+            config.MiniMaxVoiceId = m_ScanVoice;
+          } else if (config.AudioProvider == "elevenlabs") {
+            config.ElevenLabsVoiceId = m_ScanVoice;
+          }
+          m_ConfigManager->Save();
         }
       }
 
@@ -1087,7 +1135,12 @@ namespace Image2Card
                   }
                 } else {
                   std::string audioFormat = m_ConfigManager->GetConfig().AudioFormat;
-                  std::string audioExt = (audioFormat == "opus") ? "opus" : "mp3";
+                  std::string audioExt;
+                  if (audioFormat == "opus") {
+                    audioExt = (m_ConfigManager->GetConfig().AudioProvider == "minimax") ? "ogg" : "opus";
+                  } else {
+                    audioExt = "mp3";
+                  }
                   filename = "vocab." + audioExt;
                 }
                 m_AnkiCardSettingsSection->SetFieldByTool(8, vocabAudio, filename);
@@ -1108,7 +1161,12 @@ namespace Image2Card
 
               if (m_AnkiCardSettingsSection && !sentenceAudio.empty()) {
                 // 9: Sentence Audio
-                std::string audioExt = (audioFormat == "opus") ? "opus" : "mp3";
+                std::string audioExt;
+                if (audioFormat == "opus") {
+                  audioExt = (m_ConfigManager->GetConfig().AudioProvider == "minimax") ? "ogg" : "opus";
+                } else {
+                  audioExt = "mp3";
+                }
                 m_AnkiCardSettingsSection->SetFieldByTool(9, sentenceAudio, "sentence." + audioExt);
               }
             }

@@ -32,9 +32,14 @@ namespace Image2Card::Config
     std::string GoogleApiKey;
     std::vector<std::string> GoogleAvailableModels;
 
-    std::string AudioApiKey;
-    std::string AudioVoiceId;
-    std::vector<std::pair<std::string, std::string>> AudioAvailableVoices;
+    std::string ElevenLabsApiKey;
+    std::string ElevenLabsVoiceId;
+    std::vector<std::pair<std::string, std::string>> ElevenLabsAvailableVoices;
+
+    std::string MiniMaxApiKey;
+    std::string MiniMaxVoiceId;
+    std::string MiniMaxModel = "speech-2.8-hd";
+    std::vector<std::pair<std::string, std::string>> MiniMaxAvailableVoices;
 
     // OCR Configuration
     std::string OCRMethod = "Tesseract";             // "AI" or "Tesseract"

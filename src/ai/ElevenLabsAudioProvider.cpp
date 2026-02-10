@@ -87,8 +87,6 @@ namespace Image2Card::AI
       m_ApiKey = json["api_key"];
     if (json.contains("voice_id"))
       m_VoiceId = json["voice_id"];
-    if (json.contains("audio_format"))
-      m_AudioFormat = json["audio_format"];
     if (json.contains("available_voices")) {
       m_AvailableVoices.clear();
       for (const auto& item : json["available_voices"]) {
@@ -106,10 +104,7 @@ namespace Image2Card::AI
       voicesJson.push_back({voice.Id, voice.Name});
     }
 
-    return {{"api_key", m_ApiKey},
-            {"voice_id", m_VoiceId},
-            {"audio_format", m_AudioFormat},
-            {"available_voices", voicesJson}};
+    return {{"api_key", m_ApiKey}, {"voice_id", m_VoiceId}, {"available_voices", voicesJson}};
   }
 
   void ElevenLabsAudioProvider::LoadRemoteVoices()
@@ -164,11 +159,21 @@ namespace Image2Card::AI
                                                                     const std::string& format)
   {
     std::string targetVoiceId = voiceId.empty() ? m_VoiceId : voiceId;
-    std::string audioFormat = format.empty() ? m_AudioFormat : format;
 
     if (m_ApiKey.empty() || targetVoiceId.empty()) {
       AF_ERROR("ElevenLabsAudioProvider Error: API Key or Voice ID is missing.");
       return {};
+    }
+
+    std::string elevenLabsFormat;
+    std::string acceptHeader;
+
+    if (format == "opus") {
+      elevenLabsFormat = "opus_48000_128";
+      acceptHeader = "audio/opus";
+    } else {
+      elevenLabsFormat = "mp3_44100_128";
+      acceptHeader = "audio/mpeg";
     }
 
     try {
@@ -176,19 +181,15 @@ namespace Image2Card::AI
       cli.set_connection_timeout(120);
       cli.set_read_timeout(120);
 
-      std::string acceptHeader = (audioFormat == "opus") ? "audio/opus" : "audio/mpeg";
       httplib::Headers headers = {{"xi-api-key", m_ApiKey}, {"Accept", acceptHeader}};
 
       nlohmann::json payload = {{"text", text},
                                 {"model_id", "eleven_v3"},
-                                {"voice_settings", {{"stability", 0.5}, {"similarity_boost", 0.75}}}};
+                                {"voice_settings", {{"stability", 0.5}, {"similarity_boost", 0.75}}},
+                                {"output_format", elevenLabsFormat}};
 
       if (!languageCode.empty()) {
         payload["language_code"] = languageCode;
-      }
-
-      if (audioFormat == "opus") {
-        payload["output_format"] = "opus_64";
       }
 
       std::string endpoint = "/v1/text-to-speech/" + targetVoiceId;
@@ -196,7 +197,7 @@ namespace Image2Card::AI
       auto res = cli.Post(endpoint, headers, payload.dump(), "application/json");
 
       if (res && res->status == 200) {
-        AF_INFO("Generated audio in {} format, size: {} bytes", audioFormat, res->body.size());
+        AF_INFO("Generated audio in {} format, size: {} bytes", format, res->body.size());
         return std::vector<unsigned char>(res->body.begin(), res->body.end());
       } else {
         AF_ERROR("ElevenLabsAudioProvider HTTP Error: {}", (res ? res->status : 0));

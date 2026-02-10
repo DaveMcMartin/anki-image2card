@@ -118,7 +118,15 @@ namespace Image2Card::Language::Morphology
     try {
       auto tokens = Analyze(surface);
       if (!tokens.empty()) {
-        return tokens[0].headword;
+        if (tokens.size() == 1) {
+          return tokens[0].headword;
+        } else {
+          std::string combinedHeadword;
+          for (const auto& token : tokens) {
+            combinedHeadword += token.headword;
+          }
+          return combinedHeadword;
+        }
       }
     } catch (const std::exception& e) {
       AF_WARN("Error getting dictionary form for '{}': {}", surface, e.what());
