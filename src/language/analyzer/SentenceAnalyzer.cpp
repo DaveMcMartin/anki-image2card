@@ -188,27 +188,81 @@ namespace Image2Card::Language::Analyzer
         size_t sentencePos = sentence.find(focusWord);
         if (sentencePos != std::string::npos) {
           // Build a version of furigana without brackets to find positions
-          std::string furiganaWithoutBrackets;
-          std::vector<size_t> positionMap; // Maps position in furiganaWithoutBrackets to position in original furigana
+          // Handle UTF-8 properly by extracting whole characters, not bytes
+          std::vector<std::string> furiganaChars;
+          std::vector<size_t> positionMap; // Maps character index to byte position in original furigana
 
-          for (size_t i = 0; i < highlightedFurigana.length(); ++i) {
+          size_t i = 0;
+          while (i < highlightedFurigana.length()) {
             if (highlightedFurigana[i] == '[') {
               // Skip until ]
               while (i < highlightedFurigana.length() && highlightedFurigana[i] != ']') {
                 i++;
               }
-            } else if (highlightedFurigana[i] != ' ') {
+              if (i < highlightedFurigana.length()) {
+                i++; // Skip the ]
+              }
+            } else if (highlightedFurigana[i] == ' ') {
+              i++;
+            } else {
+              // Extract UTF-8 character
+              unsigned char c = highlightedFurigana[i];
+              size_t charLen = 1;
+              if ((c & 0xE0) == 0xC0) {
+                charLen = 2;
+              } else if ((c & 0xF0) == 0xE0) {
+                charLen = 3;
+              } else if ((c & 0xF8) == 0xF0) {
+                charLen = 4;
+              }
+
               positionMap.push_back(i);
-              furiganaWithoutBrackets += highlightedFurigana[i];
+              furiganaChars.push_back(highlightedFurigana.substr(i, charLen));
+              i += charLen;
             }
           }
 
-          // Find focusWord in the bracket-free version
-          size_t cleanPos = furiganaWithoutBrackets.find(focusWord);
-          if (cleanPos != std::string::npos && cleanPos < positionMap.size()) {
-            size_t startPos = positionMap[cleanPos];
-            size_t endIndex = cleanPos + focusWord.length() - 1;
-            size_t endPos = (endIndex < positionMap.size()) ? positionMap[endIndex] + 1 : highlightedFurigana.length();
+          // Split focusWord into UTF-8 characters
+          std::vector<std::string> focusChars;
+          size_t focusPos = 0;
+          while (focusPos < focusWord.length()) {
+            unsigned char c = focusWord[focusPos];
+            size_t charLen = 1;
+            if ((c & 0xE0) == 0xC0) {
+              charLen = 2;
+            } else if ((c & 0xF0) == 0xE0) {
+              charLen = 3;
+            } else if ((c & 0xF8) == 0xF0) {
+              charLen = 4;
+            }
+            focusChars.push_back(focusWord.substr(focusPos, charLen));
+            focusPos += charLen;
+          }
+
+          // Find focusWord characters in furiganaChars
+          size_t matchPos = std::string::npos;
+          for (size_t j = 0; j <= furiganaChars.size() - focusChars.size(); ++j) {
+            bool match = true;
+            for (size_t k = 0; k < focusChars.size(); ++k) {
+              if (furiganaChars[j + k] != focusChars[k]) {
+                match = false;
+                break;
+              }
+            }
+            if (match) {
+              matchPos = j;
+              break;
+            }
+          }
+
+          if (matchPos != std::string::npos && matchPos < positionMap.size()) {
+            size_t startPos = positionMap[matchPos];
+            size_t lastCharIndex = matchPos + focusChars.size() - 1;
+
+            // Calculate end position: start of last char + its length
+            size_t lastCharStart = positionMap[lastCharIndex];
+            size_t lastCharByteLen = focusChars.back().length();
+            size_t endPos = lastCharStart + lastCharByteLen;
 
             // Check if endPos lands inside a furigana bracket and extend to include the closing ]
             if (endPos < highlightedFurigana.length()) {
