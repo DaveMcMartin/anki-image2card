@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <cstdint>
 
 namespace Image2Card::Language::Furigana
 {
