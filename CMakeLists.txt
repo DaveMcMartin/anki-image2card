@@ -133,6 +133,11 @@ elseif(WIN32)
         "src/ocr/native/NativeOCRProvider_Windows.cpp"
         PROPERTIES COMPILE_FLAGS "/std:c++latest /EHsc"
     )
+    # Need to link against some Windows libraries
+    if(NOT PKG_CONFIG_FOUND)
+        # Windows generally doesn't use PkgConfig, so we might need to handle Mecab explicitly here or skip it
+        message(WARNING "Building on Windows without PkgConfig")
+    endif()
 elseif(UNIX AND NOT APPLE)
     list(APPEND SOURCES "src/ai/native/NativeAudioProvider_Linux.cpp")
     list(APPEND SOURCES "src/ocr/native/NativeOCRProvider_Linux.cpp")
