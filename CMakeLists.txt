@@ -47,15 +47,19 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cpp-httplib)
 
 # Find Dependencies
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(TESSERACT REQUIRED tesseract)
-pkg_check_modules(LEPTONICA REQUIRED lept)
-pkg_check_modules(WEBP REQUIRED libwebp)
+find_package(PkgConfig)
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(TESSERACT REQUIRED tesseract)
+    pkg_check_modules(LEPTONICA REQUIRED lept)
+    pkg_check_modules(WEBP REQUIRED libwebp)
+    pkg_check_modules(MECAB mecab)
+else()
+    message(FATAL_ERROR "PkgConfig is required to find dependencies")
+endif()
 
 find_package(SQLite3 REQUIRED)
 
 # Try to find Mecab with pkg-config first, fall back to manual detection
-pkg_check_modules(MECAB mecab)
 if(NOT MECAB_FOUND)
     # Fallback: use mecab-config on macOS
     find_program(MECAB_CONFIG mecab-config)
@@ -132,8 +136,10 @@ elseif(WIN32)
 elseif(UNIX AND NOT APPLE)
     list(APPEND SOURCES "src/ai/native/NativeAudioProvider_Linux.cpp")
     list(APPEND SOURCES "src/ocr/native/NativeOCRProvider_Linux.cpp")
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(SPEECHD REQUIRED speech-dispatcher)
+    find_package(PkgConfig)
+    if(PKG_CONFIG_FOUND)
+        pkg_check_modules(SPEECHD REQUIRED speech-dispatcher)
+    endif()
 endif()
 
 if(APPLE)
