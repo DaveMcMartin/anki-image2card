@@ -51,8 +51,14 @@ find_package(PkgConfig)
 if(PKG_CONFIG_FOUND)
     pkg_check_modules(TESSERACT REQUIRED tesseract)
     pkg_check_modules(LEPTONICA REQUIRED lept)
-    pkg_check_modules(MECAB mecab)
     pkg_check_modules(WEBP REQUIRED libwebp)
+    pkg_check_modules(MECAB mecab)
+else()
+    # Instead of find_package, which might fail if FindTesseract.cmake is missing,
+    # we can search for the libraries manually or let the build script handle it later for Windows/Mac
+    # Tesseract and Leptonica are bundled via cmake/bundle_ocr_libs.sh on macOS
+    # and statically/dynamically linked via Find modules or manual paths
+    message(WARNING "Building without PkgConfig. Some dependencies might need to be resolved manually.")
 endif()
 
 find_package(SQLite3 REQUIRED)
@@ -131,11 +137,6 @@ elseif(WIN32)
         "src/ocr/native/NativeOCRProvider_Windows.cpp"
         PROPERTIES COMPILE_FLAGS "/std:c++latest /EHsc"
     )
-    # Need to link against some Windows libraries
-    if(NOT PKG_CONFIG_FOUND)
-        # Windows generally doesn't use PkgConfig, so we might need to handle Mecab explicitly here or skip it
-        message(WARNING "Building on Windows without PkgConfig")
-    endif()
 elseif(UNIX AND NOT APPLE)
     list(APPEND SOURCES "src/ai/native/NativeAudioProvider_Linux.cpp")
     list(APPEND SOURCES "src/ocr/native/NativeOCRProvider_Linux.cpp")
