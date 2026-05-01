@@ -47,14 +47,23 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cpp-httplib)
 
 # Find Dependencies
-find_package(PkgConfig)
-if(PKG_CONFIG_FOUND)
-    pkg_check_modules(TESSERACT tesseract)
-    pkg_check_modules(LEPTONICA lept)
-    pkg_check_modules(WEBP libwebp)
-    pkg_check_modules(MECAB mecab)
-endif()
 
+if(NOT WIN32 AND NOT APPLE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(TESSERACT REQUIRED tesseract)
+    pkg_check_modules(LEPTONICA REQUIRED lept)
+    pkg_check_modules(WEBP REQUIRED libwebp)
+    pkg_check_modules(MECAB mecab)
+else()
+    # For Windows and macOS we don't use pkg_check_modules by default, but some deps
+    # are resolved manually or we let them be missing if they are bundled.
+    find_package(PkgConfig)
+    if(PKG_CONFIG_FOUND)
+        pkg_check_modules(TESSERACT tesseract)
+        pkg_check_modules(LEPTONICA lept)
+        pkg_check_modules(WEBP libwebp)
+    endif()
+endif()
 find_package(SQLite3 REQUIRED)
 
 # Try to find Mecab with pkg-config first, fall back to manual detection
@@ -134,10 +143,7 @@ elseif(WIN32)
 elseif(UNIX AND NOT APPLE)
     list(APPEND SOURCES "src/ai/native/NativeAudioProvider_Linux.cpp")
     list(APPEND SOURCES "src/ocr/native/NativeOCRProvider_Linux.cpp")
-    find_package(PkgConfig)
-    if(PKG_CONFIG_FOUND)
-        pkg_check_modules(SPEECHD speech-dispatcher)
-    endif()
+    pkg_check_modules(SPEECHD REQUIRED speech-dispatcher)
 endif()
 
 if(APPLE)
