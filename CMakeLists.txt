@@ -49,16 +49,10 @@ FetchContent_MakeAvailable(cpp-httplib)
 # Find Dependencies
 find_package(PkgConfig)
 if(PKG_CONFIG_FOUND)
-    pkg_check_modules(TESSERACT REQUIRED tesseract)
-    pkg_check_modules(LEPTONICA REQUIRED lept)
-    pkg_check_modules(WEBP REQUIRED libwebp)
+    pkg_check_modules(TESSERACT tesseract)
+    pkg_check_modules(LEPTONICA lept)
+    pkg_check_modules(WEBP libwebp)
     pkg_check_modules(MECAB mecab)
-else()
-    # Instead of find_package, which might fail if FindTesseract.cmake is missing,
-    # we can search for the libraries manually or let the build script handle it later for Windows/Mac
-    # Tesseract and Leptonica are bundled via cmake/bundle_ocr_libs.sh on macOS
-    # and statically/dynamically linked via Find modules or manual paths
-    message(WARNING "Building without PkgConfig. Some dependencies might need to be resolved manually.")
 endif()
 
 find_package(SQLite3 REQUIRED)
@@ -142,7 +136,7 @@ elseif(UNIX AND NOT APPLE)
     list(APPEND SOURCES "src/ocr/native/NativeOCRProvider_Linux.cpp")
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)
-        pkg_check_modules(SPEECHD REQUIRED speech-dispatcher)
+        pkg_check_modules(SPEECHD speech-dispatcher)
     endif()
 endif()
 
