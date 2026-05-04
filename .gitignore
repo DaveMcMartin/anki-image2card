@@ -58,3 +58,5 @@ config.json
 
 # dbs
 assets/pitch_accent.db
+.zig-cache/
+zig-out/

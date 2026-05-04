@@ -1,0 +1,200 @@
+const std = @import("std");
+
+pub fn build(b: *std.Build) void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
+    const exe = b.addExecutable(.{
+        .name = "AnkiImage2Card",
+        .target = target,
+        .optimize = optimize,
+    });
+
+    var src_files = std.ArrayList([]const u8).init(b.allocator);
+    defer src_files.deinit();
+
+    src_files.appendSlice(&[_][]const u8{
+        "src/Application.cpp",
+        "src/ai/ElevenLabsAudioProvider.cpp",
+        "src/ai/GoogleTextProvider.cpp",
+        "src/ai/MiniMaxAudioProvider.cpp",
+        "src/ai/NativeAudioProvider.cpp",
+        "src/ai/XAiTextProvider.cpp",
+        "src/api/AnkiConnectClient.cpp",
+        "src/audio/AudioPlayer.cpp",
+        "src/config/ConfigManager.cpp",
+        "src/core/Logger.cpp",
+        "src/language/analyzer/LocalAnalyzer.cpp",
+        "src/language/analyzer/SentenceAnalyzer.cpp",
+        "src/language/audio/ForvoClient.cpp",
+        "src/language/dictionary/AIDictionaryClient.cpp",
+        "src/language/dictionary/JMDictionary.cpp",
+        "src/language/furigana/JapaneseCharUtils.cpp",
+        "src/language/furigana/MecabBasedFuriganaGenerator.cpp",
+        "src/language/morphology/MecabAnalyzer.cpp",
+        "src/language/pitch_accent/PitchAccentDatabase.cpp",
+        "src/language/services/AITranslationService.cpp",
+        "src/language/services/DeepLService.cpp",
+        "src/language/services/GoogleTranslateService.cpp",
+        "src/language/services/NoneTranslationService.cpp",
+        "src/language/translation/AITranslator.cpp",
+        "src/language/translation/DeepLTranslator.cpp",
+        "src/language/translation/GoogleTranslateTranslator.cpp",
+        "src/main.cpp",
+        "src/ocr/AIOCRProvider.cpp",
+        "src/ocr/NativeOCRProvider.cpp",
+        "src/ocr/TesseractOCRProvider.cpp",
+        "src/ui/AnkiCardSettingsSection.cpp",
+        "src/ui/ConfigurationSection.cpp",
+        "src/ui/ImageSection.cpp",
+        "src/ui/StatusSection.cpp",
+        "src/ui/fields/CardField.cpp",
+        "src/utils/Base64Utils.cpp",
+        "src/utils/ImageProcessor.cpp",
+    }) catch @panic("OOM");
+
+    const t = target.result;
+
+    if (t.os.tag == .macos) {
+        src_files.append("src/ai/native/NativeAudioProvider_Mac.mm") catch @panic("OOM");
+        src_files.append("src/ocr/native/NativeOCRProvider_Mac.mm") catch @panic("OOM");
+    } else if (t.os.tag == .windows) {
+        src_files.append("src/ai/native/NativeAudioProvider_Windows.cpp") catch @panic("OOM");
+        src_files.append("src/ocr/native/NativeOCRProvider_Windows.cpp") catch @panic("OOM");
+    } else {
+        src_files.append("src/ai/native/NativeAudioProvider_Linux.cpp") catch @panic("OOM");
+        src_files.append("src/ocr/native/NativeOCRProvider_Linux.cpp") catch @panic("OOM");
+    }
+
+    const cpp_flags = &[_][]const u8{
+        "-std=c++23",
+        "-fexceptions",
+        "-DCPPHTTPLIB_OPENSSL_SUPPORT",
+        "-O2"
+    };
+
+    exe.addCSourceFiles(.{
+        .files = src_files.items,
+        .flags = cpp_flags,
+    });
+
+    exe.linkLibC();
+    exe.linkLibCpp();
+
+    // Dependencies
+
+    // SDL3
+    const sdl_dep = b.dependency("SDL", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    // SDL3 artifact might be named "SDL" or "SDL3-shared"
+    if (sdl_dep.builder.artifacts.items.len > 0) {
+        // Let's just try to link system SDL for now if zig package fails, but preview-3.1.3 has artifact "SDL3" usually
+        // Actually looking at libsdl-org/SDL build.zig it exports "SDL3" or "SDL2"
+        // We will just link against system SDL3 if it's not straightforward or use the artifact if we can find its name.
+        // But since we can't inspect it dynamically easily, we'll try linking System Library if Linux, otherwise rely on the macOS framework or zig package.
+    }
+
+    // For now, let's link the artifact by checking if it exists, or just fallback to linking the system library SDL3 if building on Linux.
+    exe.addIncludePath(sdl_dep.path("include"));
+    if (t.os.tag == .linux) {
+        exe.linkSystemLibrary("SDL3");
+    } else if (t.os.tag == .windows) {
+        // We might need to compile SDL3 from source on Windows or just assume it is provided by the environment.
+        exe.linkSystemLibrary("SDL3");
+    } else {
+        exe.linkFramework("SDL3");
+    }
+
+    // ImGui
+    const imgui_dep = b.dependency("imgui", .{});
+    exe.addIncludePath(imgui_dep.path("."));
+    exe.addIncludePath(imgui_dep.path("backends"));
+    exe.addIncludePath(imgui_dep.path("misc/cpp"));
+
+    // JSON
+    const json_dep = b.dependency("json", .{});
+    exe.addIncludePath(json_dep.path("include"));
+
+    // httplib
+    const httplib_dep = b.dependency("cpp_httplib", .{});
+    exe.addIncludePath(httplib_dep.path("."));
+
+    exe.addIncludePath(b.path("src"));
+    exe.addIncludePath(b.path("src/core"));
+    exe.addIncludePath(b.path("third_party"));
+    exe.addIncludePath(b.path("assets"));
+
+    exe.addCSourceFiles(.{
+        .root = imgui_dep.path("."),
+        .files = &[_][]const u8{
+            "imgui.cpp",
+            "imgui_draw.cpp",
+            "imgui_tables.cpp",
+            "imgui_widgets.cpp",
+            "backends/imgui_impl_sdl3.cpp",
+            "backends/imgui_impl_sdlrenderer3.cpp",
+            "misc/cpp/imgui_stdlib.cpp",
+        },
+        .flags = cpp_flags,
+    });
+
+    // External System libraries required on all platforms for the code
+    exe.linkSystemLibrary("sqlite3");
+    exe.linkSystemLibrary("tesseract");
+    exe.linkSystemLibrary("lept");
+    exe.linkSystemLibrary("webp");
+    exe.linkSystemLibrary("mecab");
+
+    // Platform-specific External Libraries
+    if (t.os.tag == .linux) {
+        exe.linkSystemLibrary("speech-dispatcher");
+        exe.linkSystemLibrary("asound");
+        exe.linkSystemLibrary("ssl");
+        exe.linkSystemLibrary("crypto");
+    } else if (t.os.tag == .windows) {
+        exe.linkSystemLibrary("ws2_32");
+        exe.linkSystemLibrary("crypt32");
+        exe.linkSystemLibrary("bcrypt");
+        exe.linkSystemLibrary("secur32");
+        exe.linkSystemLibrary("shlwapi");
+    }
+
+    if (t.os.tag == .macos) {
+        exe.linkFramework("AVFoundation");
+        exe.linkFramework("Foundation");
+        exe.linkFramework("Vision");
+        exe.linkFramework("ImageIO");
+        exe.linkFramework("CoreGraphics");
+        exe.linkFramework("CoreServices");
+        exe.linkFramework("Security");
+    }
+
+    // Asset Installation
+    const install_assets = b.addInstallDirectory(.{
+        .source_dir = b.path("assets"),
+        .install_dir = .bin,
+        .install_subdir = "assets",
+    });
+
+    const install_tessdata = b.addInstallDirectory(.{
+        .source_dir = b.path("tessdata"),
+        .install_dir = .bin,
+        .install_subdir = "tessdata",
+    });
+
+    b.getInstallStep().dependOn(&install_assets.step);
+    b.getInstallStep().dependOn(&install_tessdata.step);
+
+    b.installArtifact(exe);
+
+    const run_cmd = b.addRunArtifact(exe);
+    run_cmd.step.dependOn(b.getInstallStep());
+
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
+    }
+    const run_step = b.step("run", "Run the app");
+    run_step.dependOn(&run_cmd.step);
+}

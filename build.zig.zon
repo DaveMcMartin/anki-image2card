@@ -1,0 +1,28 @@
+.{
+    .name = .app,
+    .version = "0.0.0",
+    .fingerprint = 0xc96e70cf0b49e0a3,
+    .dependencies = .{
+        .SDL = .{
+            .url = "https://github.com/libsdl-org/SDL/archive/refs/tags/preview-3.1.3.tar.gz",
+            .hash = "12206a5bacedd2bdd3a56bf9c65d62a593fe0e05be586fb16ee4cc90468a97b95022",
+        },
+        .imgui = .{
+            .url = "git+https://github.com/ocornut/imgui.git?ref=docking#ed9d1e742793f7e4333565f891b4e3821b205f09",
+            .hash = "12200f1f93e9e3440e7461ab0be66f807c448774019c7734da06d36caae1b0f645eb",
+        },
+        .json = .{
+            .url = "https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.tar.gz",
+            .hash = "12203ada5de99b48676019c52ad8ea06a5cae74319c5f1fe5aaf020ec9636872f423",
+        },
+        .cpp_httplib = .{
+            .url = "https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.14.3.tar.gz",
+            .hash = "1220b78b4afa01abe319aa2d93e9bf06b0a2f923a42b33561702fa71c397addc098e",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

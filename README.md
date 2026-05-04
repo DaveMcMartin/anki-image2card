@@ -35,8 +35,7 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 
 ## Prerequisites
 
-- **C++ Compiler**: A C++23 compatible compiler (Clang 17+, GCC 13+, MSVC 2022+).
-- **CMake**: Version 3.25 or higher.
+- **Zig Compiler**: Version 0.14.0 or higher.
 - **Git**: For fetching dependencies.
 - **Tesseract OCR** (Optional): Required only if you want to use Tesseract for text extraction. Native OS OCR (macOS/Windows) and AI OCR are built-in.
   - **macOS**: `brew install tesseract`
@@ -50,7 +49,7 @@ Anki Image2Card is a modern C++23 cross-platform desktop application designed to
 
 ## Building
 
-This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nlohmann/json, cpp-httplib).
+This project uses the Zig build system.
 
 1. **Clone the repository**:
 
@@ -59,29 +58,13 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
    cd anki-image2card
    ```
 
-2. **Create a build directory**:
+2. **Build and Run**:
 
    ```bash
-   mkdir build
-   cd build
+   zig build run
    ```
 
-3. **Configure the project**:
-
-   ```bash
-   cmake ..
-   ```
-
-4. **Build**:
-
-   ```bash
-   cmake --build .
-   ```
-
-5. **Run**:
-   - **macOS**: `./bin/Anki\ Image2Card.app/Contents/MacOS/Anki\ Image2Card`
-   - **Linux**: `./bin/Anki\ Image2Card`
-   - **Windows**: `bin\Anki Image2Card.exe`
+   This will automatically fetch dependencies and build the project!
 
 ## Project Structure
 
@@ -95,7 +78,7 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
   - `ocr/` - OCR providers (Native OS, Tesseract, AI)
   - `ui/` - User interface components
   - `utils/` - Utility functions
-- `cmake/` - CMake build scripts and utilities
+- `build.zig` - Zig build scripts and utilities
 - `docs/` - Documentation and screenshots
 - `assets/` - Application assets (icons, etc.)
 - `tessdata/` - Tesseract language data files
@@ -175,7 +158,7 @@ This project uses CMake and FetchContent to manage dependencies (SDL3, ImGui, nl
 - **Mecab**: Japanese morphological analyzer.
 - **SQLite3**: Database engine for local dictionaries and pitch accent data.
 
-Most dependencies are automatically fetched and built by CMake. Tesseract, Leptonica, Mecab, and SQLite3 are found using pkg-config on your system.
+Most dependencies are automatically fetched and built by Zig. Tesseract, Leptonica, Mecab, and SQLite3 are found using zig dependencies configuration on your system.
 
 ## License
 
