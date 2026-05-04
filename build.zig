@@ -137,6 +137,9 @@ pub fn build(b: *std.Build) void {
     exe.linkSystemLibrary("tesseract");
     exe.linkSystemLibrary("lept");
     exe.linkSystemLibrary("webp");
+    if (t.os.tag == .linux) exe.linkSystemLibrary("webpdemux");
+    if (t.os.tag == .linux) exe.linkSystemLibrary("webpmux");
+    if (t.os.tag != .windows) exe.linkSystemLibrary("pkgconf");
     exe.linkSystemLibrary("mecab");
 
     // Platform-specific External Libraries
