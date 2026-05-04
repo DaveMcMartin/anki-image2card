@@ -88,24 +88,27 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    // SDL3 artifact might be named "SDL" or "SDL3-shared"
-    if (sdl_dep.builder.artifacts.items.len > 0) {
-        // Let's just try to link system SDL for now if zig package fails, but preview-3.1.3 has artifact "SDL3" usually
-        // Actually looking at libsdl-org/SDL build.zig it exports "SDL3" or "SDL2"
-        // We will just link against system SDL3 if it's not straightforward or use the artifact if we can find its name.
-        // But since we can't inspect it dynamically easily, we'll try linking System Library if Linux, otherwise rely on the macOS framework or zig package.
+
+    var has_sdl_artifact = false;
+    for (sdl_dep.builder.artifacts.items) |artifact| {
+        if (std.mem.eql(u8, artifact.name, "SDL3-shared") or std.mem.eql(u8, artifact.name, "SDL3")) {
+            has_sdl_artifact = true;
+            exe.linkLibrary(artifact);
+            break;
+        }
     }
 
-    // For now, let's link the artifact by checking if it exists, or just fallback to linking the system library SDL3 if building on Linux.
-    exe.addIncludePath(sdl_dep.path("include"));
-    if (t.os.tag == .linux) {
-        exe.linkSystemLibrary("SDL3");
-    } else if (t.os.tag == .windows) {
-        // We might need to compile SDL3 from source on Windows or just assume it is provided by the environment.
-        exe.linkSystemLibrary("SDL3");
-    } else {
-        exe.linkFramework("SDL3");
+    if (!has_sdl_artifact) {
+        if (t.os.tag == .windows) {
+            exe.linkSystemLibrary("SDL3");
+        } else if (t.os.tag == .macos) {
+            exe.linkFramework("SDL3");
+        } else {
+            exe.linkSystemLibrary("SDL3");
+        }
     }
+
+    exe.addIncludePath(sdl_dep.path("include"));
 
     // ImGui
     const imgui_dep = b.dependency("imgui", .{});
@@ -153,6 +156,7 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("asound");
         exe.linkSystemLibrary("ssl");
         exe.linkSystemLibrary("crypto");
+        exe.linkSystemLibrary("curl");
     } else if (t.os.tag == .windows) {
         exe.linkSystemLibrary("ws2_32");
         exe.linkSystemLibrary("crypt32");

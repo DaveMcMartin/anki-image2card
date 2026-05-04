@@ -22,42 +22,44 @@ jobs:
           - os: ubuntu-latest
             artifact_name: AnkiImage2Card-Linux
             asset_name: AnkiImage2Card-Linux.tar.gz
-            bin_path: build/bin/AnkiImage2Card
-            assets_path: build/bin/assets
+            bin_path: zig-out/bin/AnkiImage2Card
+            assets_path: zig-out/bin/assets
           - os: windows-latest
             artifact_name: AnkiImage2Card-Windows
             asset_name: AnkiImage2Card-Windows.zip
-            bin_path: build/bin/Release/AnkiImage2Card.exe
-            assets_path: build/bin/assets
+            bin_path: zig-out/bin/AnkiImage2Card.exe
+            assets_path: zig-out/bin/assets
           - os: macos-latest
             artifact_name: AnkiImage2Card-MacOS
             asset_name: AnkiImage2Card-MacOS.zip
-            bin_path: build/bin/AnkiImage2Card
-            assets_path: build/bin/assets
+            bin_path: zig-out/bin/AnkiImage2Card
+            assets_path: zig-out/bin/assets
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.14.0
 
       - name: Install Linux Dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake build-essential libgl1-mesa-dev libx11-dev libxext-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev tesseract-ocr libtesseract-dev libleptonica-dev pkg-config
+          sudo apt-get install -y build-essential libgl1-mesa-dev libx11-dev libxext-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev tesseract-ocr libtesseract-dev libleptonica-dev pkg-config libasound2-dev libspeechd-dev libmecab-dev mecab-ipadic-utf8 libsqlite3-dev
 
       - name: Install macOS Dependencies
         if: runner.os == 'macOS'
-        run: brew install tesseract
+        run: brew install tesseract mecab mecab-ipadic
 
       - name: Install Windows Dependencies
         if: runner.os == 'Windows'
         run: |
           choco install -y tesseract
 
-      - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
-
       - name: Build
-        run: cmake --build build --config Release
+        run: zig build -Doptimize=ReleaseFast
 
       - name: Prepare Artifacts (Unix)
         if: runner.os != 'Windows'
@@ -77,16 +79,11 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist
           Copy-Item -Path "${{ matrix.bin_path }}" -Destination dist\
-          # Note: On Windows, CMake might copy assets to build/bin/Release/assets or build/bin/assets depending on config
-          # We check where the exe is.
-          $exeDir = Split-Path "${{ matrix.bin_path }}" -Parent
-          $assetsSource = Join-Path $exeDir "assets"
+
+          $assetsSource = "${{ matrix.assets_path }}"
 
           if (Test-Path $assetsSource) {
               Copy-Item -Path $assetsSource -Destination dist\ -Recurse
-          } else {
-              # Fallback if not in Release folder
-              Copy-Item -Path "${{ matrix.assets_path }}" -Destination dist\ -Recurse
           }
 
           Compress-Archive -Path dist\* -DestinationPath ${{ matrix.asset_name }}
