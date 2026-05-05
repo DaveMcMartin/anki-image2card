@@ -19,10 +19,6 @@
             .url = "https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.14.3.tar.gz",
             .hash = "1220b78b4afa01abe319aa2d93e9bf06b0a2f923a42b33561702fa71c397addc098e",
         },
-        .sqlite = .{
-            .url = "https://github.com/sqlite/sqlite/archive/refs/tags/version-3.45.1.tar.gz",
-            .hash = "N-V-__8AAK3hkwbx41pytXrszaYiNZTSdke2raVULntR95WV",
-        },
     },
     .paths = .{
         "build.zig",
