@@ -80,15 +80,10 @@ pub fn build(b: *std.Build) void {
 
     exe.linkLibC();
 
-    // Use system libstdc++ on linux to avoid libc++ ABI mismatch with apt packages
     if (t.os.tag == .linux or t.os.tag == .windows) {
         exe.linkSystemLibrary("stdc++");
     } else {
-        if (t.os.tag == .linux or t.os.tag == .windows) {
-        exe.linkSystemLibrary("stdc++");
-    } else {
         exe.linkLibCpp();
-    }
     }
 
     // Dependencies
@@ -178,6 +173,8 @@ pub fn build(b: *std.Build) void {
         exe.linkFramework("Security");
         // curl is also needed by cpp-httplib sometimes
         exe.linkSystemLibrary("curl");
+        exe.linkSystemLibrary("ssl");
+        exe.linkSystemLibrary("crypto");
     }
 
     // Asset Installation
