@@ -2,7 +2,7 @@
 
 #include <allheaders.h>
 #include <cstring>
-#include <tesseract/baseapi.h>
+#include <tesseract/capi.h>
 
 #include "core/Logger.h"
 
@@ -10,7 +10,7 @@ namespace Image2Card::OCR
 {
 
   TesseractOCRProvider::TesseractOCRProvider()
-      : m_TessAPI(std::make_unique<tesseract::TessBaseAPI>())
+      : m_TessAPI(TessBaseAPICreate())
       , m_IsInitialized(false)
       , m_Orientation(TesseractOrientation::Horizontal)
   {}
@@ -18,7 +18,8 @@ namespace Image2Card::OCR
   TesseractOCRProvider::~TesseractOCRProvider()
   {
     if (m_TessAPI) {
-      m_TessAPI->End();
+      TessBaseAPIEnd(m_TessAPI);
+      TessBaseAPIDelete(m_TessAPI);
     }
   }
 
@@ -30,7 +31,7 @@ namespace Image2Card::OCR
     }
 
     // Initialize tesseract-ocr with the specified language
-    if (m_TessAPI->Init(tessDataPath.c_str(), language.c_str())) {
+    if (TessBaseAPIInit3(m_TessAPI, tessDataPath.c_str(), language.c_str()) != 0) {
       AF_ERROR("Could not initialize Tesseract with language: {} at path: {}", language, tessDataPath);
       m_IsInitialized = false;
       return false;
@@ -67,27 +68,27 @@ namespace Image2Card::OCR
     }
 
     // Clear previous recognition state to ensure clean OCR
-    m_TessAPI->Clear();
+    TessBaseAPIClear(m_TessAPI);
 
     // Set the image for OCR
-    m_TessAPI->SetImage(image);
+    TessBaseAPISetImage2(m_TessAPI, image);
 
     // Set page segmentation mode based on orientation
     if (m_Orientation == TesseractOrientation::Vertical) {
-      // PSM_SINGLE_BLOCK_VERT_TEXT (5) for vertical text
-      m_TessAPI->SetPageSegMode(tesseract::PSM_SINGLE_BLOCK_VERT_TEXT);
+      // tesseract::PSM_SINGLE_BLOCK_VERT_TEXT (5) for vertical text
+      TessBaseAPISetPageSegMode(m_TessAPI, tesseract::PSM_SINGLE_BLOCK_VERT_TEXT);
     } else {
-      // PSM_AUTO (3) for automatic detection, good for horizontal text
-      m_TessAPI->SetPageSegMode(tesseract::PSM_AUTO);
+      // tesseract::PSM_AUTO (3) for automatic detection, good for horizontal text
+      TessBaseAPISetPageSegMode(m_TessAPI, tesseract::PSM_AUTO);
     }
 
     // Perform OCR
-    char* outText = m_TessAPI->GetUTF8Text();
+    char* outText = TessBaseAPIGetUTF8Text(m_TessAPI);
 
     std::string result;
     if (outText) {
       result = std::string(outText);
-      delete[] outText;
+      TessDeleteText(outText);
     } else {
       AF_WARN("Tesseract OCR returned null text");
     }

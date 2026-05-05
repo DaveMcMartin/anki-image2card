@@ -9,10 +9,8 @@
 // Forward declare Pix struct from Leptonica
 struct Pix;
 
-namespace tesseract
-{
-  class TessBaseAPI;
-}
+// Forward declare Tesseract C API struct
+namespace tesseract { class TessBaseAPI; } typedef tesseract::TessBaseAPI TessBaseAPI;
 
 namespace Image2Card::OCR
 {
@@ -46,7 +44,7 @@ public:
 
 private:
 
-    std::unique_ptr<tesseract::TessBaseAPI> m_TessAPI;
+    TessBaseAPI* m_TessAPI;
     bool m_IsInitialized;
     TesseractOrientation m_Orientation;
   };
