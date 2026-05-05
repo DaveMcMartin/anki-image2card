@@ -79,7 +79,17 @@ pub fn build(b: *std.Build) void {
     });
 
     exe.linkLibC();
-    exe.linkLibCpp();
+
+    // Use system libstdc++ on linux to avoid libc++ ABI mismatch with apt packages
+    if (t.os.tag == .linux or t.os.tag == .windows) {
+        exe.linkSystemLibrary("stdc++");
+    } else {
+        if (t.os.tag == .linux or t.os.tag == .windows) {
+        exe.linkSystemLibrary("stdc++");
+    } else {
+        exe.linkLibCpp();
+    }
+    }
 
     // Dependencies
 
@@ -95,7 +105,6 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("SDL3");
     } else {
         exe.linkSystemLibrary("SDL3");
-        // On linux, zig cc does not use pkg-config to find /usr/local/lib by default
         exe.addLibraryPath(.{ .cwd_relative = "/usr/local/lib" });
         exe.addIncludePath(.{ .cwd_relative = "/usr/local/include" });
     }
