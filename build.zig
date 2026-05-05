@@ -58,6 +58,9 @@ pub fn build(b: *std.Build) void {
     if (t.os.tag == .macos) {
         src_files.append("src/ai/native/NativeAudioProvider_Mac.mm") catch @panic("OOM");
         src_files.append("src/ocr/native/NativeOCRProvider_Mac.mm") catch @panic("OOM");
+
+        exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+        exe.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
     } else if (t.os.tag == .windows) {
         src_files.append("src/ai/native/NativeAudioProvider_Windows.cpp") catch @panic("OOM");
         src_files.append("src/ocr/native/NativeOCRProvider_Windows.cpp") catch @panic("OOM");
@@ -81,37 +84,29 @@ pub fn build(b: *std.Build) void {
     exe.linkLibC();
     exe.linkLibCpp();
 
-    // SDL3
     const sdl_dep = b.dependency("SDL", .{
         .target = target,
         .optimize = optimize,
     });
 
-    if (t.os.tag == .windows) {
-        exe.linkSystemLibrary("SDL3");
-    } else if (t.os.tag == .macos) {
-        // macOS brew sdl3 package installs a dylib under /opt/homebrew/lib, not a Framework
-        // actually `brew install sdl3` uses pkg-config normally or just libSDL3.dylib
-        exe.linkSystemLibrary("SDL3");
-    } else {
-        exe.linkSystemLibrary("SDL3");
-    }
+    exe.linkSystemLibrary("sdl3");
 
     exe.addIncludePath(sdl_dep.path("include"));
 
-    // ImGui
     const imgui_dep = b.dependency("imgui", .{});
     exe.addIncludePath(imgui_dep.path("."));
     exe.addIncludePath(imgui_dep.path("backends"));
     exe.addIncludePath(imgui_dep.path("misc/cpp"));
 
-    // JSON
     const json_dep = b.dependency("json", .{});
     exe.addIncludePath(json_dep.path("include"));
 
-    // httplib
     const httplib_dep = b.dependency("cpp_httplib", .{});
     exe.addIncludePath(httplib_dep.path("."));
+
+    const sqlite_dep = b.dependency("sqlite", .{});
+    exe.addIncludePath(sqlite_dep.path("."));
+    exe.addCSourceFile(.{ .file = sqlite_dep.path("sqlite3.c"), .flags = &[_][]const u8{} });
 
     exe.addIncludePath(b.path("src"));
     exe.addIncludePath(b.path("src/core"));
@@ -133,13 +128,9 @@ pub fn build(b: *std.Build) void {
     });
 
     // External System libraries required on all platforms for the code
-    exe.linkSystemLibrary("sqlite3");
     exe.linkSystemLibrary("tesseract");
     exe.linkSystemLibrary("lept");
     exe.linkSystemLibrary("webp");
-    if (t.os.tag == .linux) exe.linkSystemLibrary("webpdemux");
-    if (t.os.tag == .linux) exe.linkSystemLibrary("webpmux");
-    if (t.os.tag != .windows) exe.linkSystemLibrary("pkgconf");
     exe.linkSystemLibrary("mecab");
 
     // Platform-specific External Libraries
@@ -165,7 +156,6 @@ pub fn build(b: *std.Build) void {
         exe.linkFramework("CoreGraphics");
         exe.linkFramework("CoreServices");
         exe.linkFramework("Security");
-        // curl is also needed by cpp-httplib sometimes
         exe.linkSystemLibrary("curl");
     }
 
