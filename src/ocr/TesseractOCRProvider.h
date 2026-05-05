@@ -5,12 +5,7 @@
 #include <vector>
 
 #include "ocr/IOCRProvider.h"
-
-// Forward declare Pix struct from Leptonica
-struct Pix;
-
-// Forward declare Tesseract C API struct
-namespace tesseract { class TessBaseAPI; } typedef tesseract::TessBaseAPI TessBaseAPI;
+#include "ocr/tess_c_wrapper.h"
 
 namespace Image2Card::OCR
 {

@@ -1,8 +1,9 @@
 #include "ocr/TesseractOCRProvider.h"
 
+// Do NOT include tesseract/capi.h here. It causes ABI mismatch!
+// Use leptonica header directly for Pix definition
 #include <allheaders.h>
 #include <cstring>
-#include <tesseract/capi.h>
 
 #include "core/Logger.h"
 
@@ -10,7 +11,7 @@ namespace Image2Card::OCR
 {
 
   TesseractOCRProvider::TesseractOCRProvider()
-      : m_TessAPI(TessBaseAPICreate())
+      : m_TessAPI(tess_create())
       , m_IsInitialized(false)
       , m_Orientation(TesseractOrientation::Horizontal)
   {}
@@ -18,8 +19,8 @@ namespace Image2Card::OCR
   TesseractOCRProvider::~TesseractOCRProvider()
   {
     if (m_TessAPI) {
-      TessBaseAPIEnd(m_TessAPI);
-      TessBaseAPIDelete(m_TessAPI);
+      tess_end(m_TessAPI);
+      tess_delete(m_TessAPI);
     }
   }
 
@@ -31,7 +32,7 @@ namespace Image2Card::OCR
     }
 
     // Initialize tesseract-ocr with the specified language
-    if (TessBaseAPIInit3(m_TessAPI, tessDataPath.c_str(), language.c_str()) != 0) {
+    if (tess_init(m_TessAPI, tessDataPath.c_str(), language.c_str()) != 0) {
       AF_ERROR("Could not initialize Tesseract with language: {} at path: {}", language, tessDataPath);
       m_IsInitialized = false;
       return false;
@@ -61,34 +62,34 @@ namespace Image2Card::OCR
     }
 
     // Load image from memory using Leptonica
-    Pix* image = pixReadMem(imageBuffer.data(), imageBuffer.size());
+    struct Pix* image = pixReadMem(imageBuffer.data(), imageBuffer.size());
     if (!image) {
       AF_ERROR("Failed to load image from buffer");
       return "";
     }
 
     // Clear previous recognition state to ensure clean OCR
-    TessBaseAPIClear(m_TessAPI);
+    tess_clear(m_TessAPI);
 
     // Set the image for OCR
-    TessBaseAPISetImage2(m_TessAPI, image);
+    tess_set_image(m_TessAPI, image);
 
     // Set page segmentation mode based on orientation
     if (m_Orientation == TesseractOrientation::Vertical) {
-      // tesseract::PSM_SINGLE_BLOCK_VERT_TEXT (5) for vertical text
-      TessBaseAPISetPageSegMode(m_TessAPI, tesseract::PSM_SINGLE_BLOCK_VERT_TEXT);
+      // PSM_SINGLE_BLOCK_VERT_TEXT (5) for vertical text
+      tess_set_page_seg_mode(m_TessAPI, 5);
     } else {
-      // tesseract::PSM_AUTO (3) for automatic detection, good for horizontal text
-      TessBaseAPISetPageSegMode(m_TessAPI, tesseract::PSM_AUTO);
+      // PSM_AUTO (3) for automatic detection, good for horizontal text
+      tess_set_page_seg_mode(m_TessAPI, 3);
     }
 
     // Perform OCR
-    char* outText = TessBaseAPIGetUTF8Text(m_TessAPI);
+    char* outText = tess_get_utf8_text(m_TessAPI);
 
     std::string result;
     if (outText) {
       result = std::string(outText);
-      TessDeleteText(outText);
+      tess_delete_text(outText);
     } else {
       AF_WARN("Tesseract OCR returned null text");
     }

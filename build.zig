@@ -78,10 +78,15 @@ pub fn build(b: *std.Build) void {
         .flags = cpp_flags,
     });
 
+    exe.addCSourceFile(.{ .file = b.path("src/ocr/tess_c_wrapper.c"), .flags = &[_][]const u8{"-O2"} });
+
     exe.linkLibC();
 
+    // IMPORTANT: Use system libstdc++ on linux to avoid libc++ ABI mismatch with apt packages
+    // (like tesseract, which is compiled against libstdc++'s std::vector)
     if (t.os.tag == .linux or t.os.tag == .windows) {
         exe.linkSystemLibrary("stdc++");
+        exe.linkSystemLibrary("unwind");
     } else {
         exe.linkLibCpp();
     }
