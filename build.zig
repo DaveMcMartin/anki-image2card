@@ -176,6 +176,8 @@ pub fn build(b: *std.Build) void {
         exe.linkFramework("CoreGraphics");
         exe.linkFramework("CoreServices");
         exe.linkFramework("Security");
+        exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/opt/openssl@3/lib" });
+        exe.addIncludePath(.{ .cwd_relative = "/opt/homebrew/opt/openssl@3/include" });
         // curl is also needed by cpp-httplib sometimes
         exe.linkSystemLibrary("curl");
         exe.linkSystemLibrary("ssl");
