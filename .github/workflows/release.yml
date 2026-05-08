@@ -65,6 +65,7 @@ jobs:
       - name: Install Windows Dependencies
         if: runner.os == 'Windows'
         run: |
+          choco install -y pkgconfiglite
           vcpkg install tesseract:x64-windows leptonica:x64-windows libwebp:x64-windows mecab:x64-windows
           $SDL_URL = "https://github.com/libsdl-org/SDL/releases/download/preview-3.1.3/SDL3-devel-3.1.3-mingw.zip"
           Invoke-WebRequest -Uri $SDL_URL -OutFile SDL3.zip
@@ -86,6 +87,7 @@ jobs:
         run: |
           set CFLAGS=-IC:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32/include
           set LDFLAGS=-LC:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32/lib
+          set PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows\lib\pkgconfig
           zig build -Doptimize=ReleaseFast -fno-reference-trace --search-prefix "C:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32" --search-prefix "C:/vcpkg/installed/x64-windows"
 
       - name: Prepare Artifacts (Unix)
