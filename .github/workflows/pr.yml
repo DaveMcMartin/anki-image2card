@@ -55,9 +55,9 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
-            zig build -Doptimize=ReleaseFast -fno-reference-trace --search-prefix /usr/local
+            rm -rf ~/.cache/zig .zig-cache && zig build -Doptimize=ReleaseFast -fno-reference-trace --search-prefix /usr/local
           else
-            zig build -Doptimize=ReleaseFast -fno-reference-trace --search-prefix /opt/homebrew
+            rm -rf ~/.cache/zig .zig-cache && zig build -Doptimize=ReleaseFast -fno-reference-trace --search-prefix /opt/homebrew
           fi
 
       - name: Build (Windows)
@@ -66,4 +66,4 @@ jobs:
           set CFLAGS=-IC:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32/include
           set LDFLAGS=-LC:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32/lib
           set PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows\lib\pkgconfig
-          zig build -Doptimize=ReleaseFast -fno-reference-trace --search-prefix "C:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32" --search-prefix "C:/vcpkg/installed/x64-windows"
+          rm -rf ~/.cache/zig .zig-cache && zig build -Doptimize=ReleaseFast -fno-reference-trace --search-prefix "C:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32" --search-prefix "C:/vcpkg/installed/x64-windows"

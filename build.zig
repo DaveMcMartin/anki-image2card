@@ -148,10 +148,32 @@ pub fn build(b: *std.Build) void {
     });
 
     // External System libraries required on all platforms for the code
-    exe.linkSystemLibrary("tesseract");
-    exe.linkSystemLibrary("lept");
-    exe.linkSystemLibrary("webp");
-    exe.linkSystemLibrary("mecab");
+    if (t.os.tag == .windows) {
+        exe.linkSystemLibrary("tesseract54");
+        exe.linkSystemLibrary("tesseract53");
+        exe.linkSystemLibrary("tesseract");
+    } else {
+        exe.linkSystemLibrary("tesseract");
+    }
+    if (t.os.tag == .windows) {
+        exe.linkSystemLibrary("leptonica-1.84.1");
+        exe.linkSystemLibrary("leptonica-1.83.0");
+        exe.linkSystemLibrary("lept");
+    } else {
+        exe.linkSystemLibrary("lept");
+    }
+    if (t.os.tag == .windows) {
+        exe.linkSystemLibrary("webp");
+        exe.linkSystemLibrary("libwebp");
+    } else {
+        exe.linkSystemLibrary("webp");
+    }
+    if (t.os.tag == .windows) {
+        exe.linkSystemLibrary("mecab");
+        exe.linkSystemLibrary("libmecab");
+    } else {
+        exe.linkSystemLibrary("mecab");
+    }
 
     // Platform-specific External Libraries
     if (t.os.tag == .linux) {
