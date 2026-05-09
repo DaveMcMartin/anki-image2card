@@ -63,7 +63,8 @@ jobs:
       - name: Build (Windows)
         if: runner.os == 'Windows'
         run: |
-          set CFLAGS=-IC:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32/include
-          set LDFLAGS=-LC:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32/lib
-          set PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows\lib\pkgconfig
+          export CFLAGS=-IC:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32/include
+          export LDFLAGS=-LC:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32/lib
+          export PKG_CONFIG_PATH=C:/vcpkg/installed/x64-windows/lib/pkgconfig
           rm -rf ~/.cache/zig .zig-cache && zig build -Doptimize=ReleaseFast -fno-reference-trace --search-prefix "C:/SDL3/SDL3-3.1.3/x86_64-w64-mingw32" --search-prefix "C:/vcpkg/installed/x64-windows"
+        shell: bash

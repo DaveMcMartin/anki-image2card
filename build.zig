@@ -151,16 +151,40 @@ pub fn build(b: *std.Build) void {
     if (t.os.tag == .windows) {
         exe.linkSystemLibrary("tesseract54");
         exe.linkSystemLibrary("tesseract53");
+    if (t.os.tag == .windows) {
+        exe.linkSystemLibrary("tesseract54");
+        exe.linkSystemLibrary("tesseract53");
         exe.linkSystemLibrary("tesseract");
     } else {
         exe.linkSystemLibrary("tesseract");
     }
+    } else {
+    if (t.os.tag == .windows) {
+        exe.linkSystemLibrary("tesseract54");
+        exe.linkSystemLibrary("tesseract53");
+        exe.linkSystemLibrary("tesseract");
+    } else {
+        exe.linkSystemLibrary("tesseract");
+    }
+    }
+    if (t.os.tag == .windows) {
+        exe.linkSystemLibrary("leptonica-1.84.1");
+        exe.linkSystemLibrary("leptonica-1.83.0");
     if (t.os.tag == .windows) {
         exe.linkSystemLibrary("leptonica-1.84.1");
         exe.linkSystemLibrary("leptonica-1.83.0");
         exe.linkSystemLibrary("lept");
     } else {
         exe.linkSystemLibrary("lept");
+    }
+    } else {
+    if (t.os.tag == .windows) {
+        exe.linkSystemLibrary("leptonica-1.84.1");
+        exe.linkSystemLibrary("leptonica-1.83.0");
+        exe.linkSystemLibrary("lept");
+    } else {
+        exe.linkSystemLibrary("lept");
+    }
     }
     if (t.os.tag == .windows) {
         exe.linkSystemLibrary("webp");
