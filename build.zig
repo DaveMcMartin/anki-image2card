@@ -143,12 +143,28 @@ pub fn build(b: *std.Build) void {
     exe.addIncludePath(imgui_dep.path("misc/cpp"));
     exe.addIncludePath(b.path("third_party"));
     exe.addIncludePath(b.path("third_party/sqlite"));
+    if (t.os.tag == .windows) {
+        exe.addIncludePath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/include" });
+        exe.addIncludePath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/include/leptonica" });
+        exe.addIncludePath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/include/webp" });
+        exe.addLibraryPath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/lib" });
+        exe.linkSystemLibrary("ole32");
+        exe.linkSystemLibrary("oleaut32");
+    }
 
     // Tesseract, Leptonica, WebP, MeCab
-    exe.linkSystemLibrary("tesseract");
-    exe.linkSystemLibrary("lept");
-    exe.linkSystemLibrary("webp");
-    exe.linkSystemLibrary("mecab");
+    if (t.os.tag == .windows) {
+        // vcpkg names
+        exe.linkSystemLibrary("tesseract55");
+        exe.linkSystemLibrary("leptonica-1.87.0");
+        exe.linkSystemLibrary("libwebp");
+        exe.linkSystemLibrary("libmecab");
+    } else {
+        exe.linkSystemLibrary("tesseract");
+        exe.linkSystemLibrary("lept");
+        exe.linkSystemLibrary("webp");
+        exe.linkSystemLibrary("mecab");
+    }
 
     // Platform-specific External Libraries
     if (t.os.tag == .linux) {
@@ -163,6 +179,7 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("bcrypt");
         exe.linkSystemLibrary("secur32");
         exe.linkSystemLibrary("shlwapi");
+        exe.linkSystemLibrary("windowsapp");
     }
 
     if (t.os.tag == .macos) {
