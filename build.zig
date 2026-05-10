@@ -158,7 +158,7 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("tesseract55");
         exe.linkSystemLibrary("leptonica-1.87.0");
         exe.linkSystemLibrary("libwebp");
-        exe.linkSystemLibrary("libmecab");
+        exe.linkSystemLibrary("mecab");
     } else {
         exe.linkSystemLibrary("tesseract");
         exe.linkSystemLibrary("lept");
@@ -179,7 +179,12 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("bcrypt");
         exe.linkSystemLibrary("secur32");
         exe.linkSystemLibrary("shlwapi");
-        exe.linkSystemLibrary("windowsapp");
+        exe.linkSystemLibrary("ole32");
+        exe.linkSystemLibrary("oleaut32");
+        exe.linkSystemLibrary("mfuuid");
+        exe.linkSystemLibrary("mfplat");
+        exe.linkSystemLibrary("mfreadwrite");
+        exe.linkSystemLibrary("propsys");
     }
 
     if (t.os.tag == .macos) {
