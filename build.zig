@@ -110,94 +110,45 @@ pub fn build(b: *std.Build) void {
     }
 
     exe.addIncludePath(sdl_dep.path("include"));
-
-    // ImGui
-    const imgui_dep = b.dependency("imgui", .{});
-    exe.addIncludePath(imgui_dep.path("."));
-    exe.addIncludePath(imgui_dep.path("backends"));
-    exe.addIncludePath(imgui_dep.path("misc/cpp"));
-
-    // JSON
+    const imgui_dep = b.dependency("imgui", .{ .target = target, .optimize = optimize });
     const json_dep = b.dependency("json", .{});
-    exe.addIncludePath(json_dep.path("include"));
-
-    // httplib
     const httplib_dep = b.dependency("cpp_httplib", .{});
-    exe.addIncludePath(httplib_dep.path("."));
 
-    exe.addCSourceFile(.{ .file = b.path("third_party/sqlite/sqlite3.c"), .flags = &[_][]const u8{"-fno-sanitize=undefined", "-O2"} });
-    exe.addIncludePath(b.path("third_party/sqlite"));
-
-    exe.addIncludePath(b.path("src"));
-    exe.addIncludePath(b.path("src/core"));
-    exe.addIncludePath(b.path("third_party"));
-    exe.addIncludePath(b.path("assets"));
-
-    exe.addCSourceFiles(.{
-        .root = imgui_dep.path("."),
-        .files = &[_][]const u8{
-            "imgui.cpp",
-            "imgui_draw.cpp",
-            "imgui_tables.cpp",
-            "imgui_widgets.cpp",
-            "backends/imgui_impl_sdl3.cpp",
-            "backends/imgui_impl_sdlrenderer3.cpp",
-            "misc/cpp/imgui_stdlib.cpp",
-        },
-        .flags = cpp_flags,
+    exe.addIncludePath(imgui_dep.path(""));
+    exe.addCSourceFile(.{
+        .file = b.path("third_party/sqlite/sqlite3.c"),
+        .flags = &[_][]const u8{"-O2"},
     });
 
-    // External System libraries required on all platforms for the code
-    if (t.os.tag == .windows) {
-        exe.linkSystemLibrary("tesseract54");
-        exe.linkSystemLibrary("tesseract53");
-    if (t.os.tag == .windows) {
-        exe.linkSystemLibrary("tesseract54");
-        exe.linkSystemLibrary("tesseract53");
-        exe.linkSystemLibrary("tesseract");
-    } else {
-        exe.linkSystemLibrary("tesseract");
+    const imgui_files = &[_][]const u8{
+        "misc/cpp/imgui_stdlib.cpp",
+        "imgui.cpp",
+        "imgui_draw.cpp",
+        "imgui_tables.cpp",
+        "imgui_widgets.cpp",
+        "backends/imgui_impl_sdl3.cpp",
+        "backends/imgui_impl_sdlrenderer3.cpp",
+    };
+
+    for (imgui_files) |file| {
+        exe.addCSourceFile(.{
+            .file = imgui_dep.path(file),
+            .flags = cpp_flags,
+        });
     }
-    } else {
-    if (t.os.tag == .windows) {
-        exe.linkSystemLibrary("tesseract54");
-        exe.linkSystemLibrary("tesseract53");
-        exe.linkSystemLibrary("tesseract");
-    } else {
-        exe.linkSystemLibrary("tesseract");
-    }
-    }
-    if (t.os.tag == .windows) {
-        exe.linkSystemLibrary("leptonica-1.84.1");
-        exe.linkSystemLibrary("leptonica-1.83.0");
-    if (t.os.tag == .windows) {
-        exe.linkSystemLibrary("leptonica-1.84.1");
-        exe.linkSystemLibrary("leptonica-1.83.0");
-        exe.linkSystemLibrary("lept");
-    } else {
-        exe.linkSystemLibrary("lept");
-    }
-    } else {
-    if (t.os.tag == .windows) {
-        exe.linkSystemLibrary("leptonica-1.84.1");
-        exe.linkSystemLibrary("leptonica-1.83.0");
-        exe.linkSystemLibrary("lept");
-    } else {
-        exe.linkSystemLibrary("lept");
-    }
-    }
-    if (t.os.tag == .windows) {
-        exe.linkSystemLibrary("webp");
-        exe.linkSystemLibrary("libwebp");
-    } else {
-        exe.linkSystemLibrary("webp");
-    }
-    if (t.os.tag == .windows) {
-        exe.linkSystemLibrary("mecab");
-        exe.linkSystemLibrary("libmecab");
-    } else {
-        exe.linkSystemLibrary("mecab");
-    }
+
+    exe.addIncludePath(json_dep.path("include"));
+    exe.addIncludePath(httplib_dep.path(""));
+    exe.addIncludePath(b.path("src"));
+    exe.addIncludePath(imgui_dep.path("misc/cpp"));
+    exe.addIncludePath(b.path("third_party"));
+    exe.addIncludePath(b.path("third_party/sqlite"));
+
+    // Tesseract, Leptonica, WebP, MeCab
+    exe.linkSystemLibrary("tesseract");
+    exe.linkSystemLibrary("lept");
+    exe.linkSystemLibrary("webp");
+    exe.linkSystemLibrary("mecab");
 
     // Platform-specific External Libraries
     if (t.os.tag == .linux) {
@@ -224,7 +175,7 @@ pub fn build(b: *std.Build) void {
         exe.linkFramework("Security");
         exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/opt/openssl@3/lib" });
         exe.addIncludePath(.{ .cwd_relative = "/opt/homebrew/opt/openssl@3/include" });
-        // curl is also needed by cpp-httplib sometimes
+        // curl is also needed by cpp_httplib sometimes
         exe.linkSystemLibrary("curl");
         exe.linkSystemLibrary("ssl");
         exe.linkSystemLibrary("crypto");
