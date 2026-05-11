@@ -161,6 +161,8 @@ pub fn build(b: *std.Build) void {
         // wait, let's just use the known path but fall back to checking if it exists if possible.
         // GitHub Actions has MSVC installed.
         exe.addIncludePath(.{ .cwd_relative = "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.41.34120/atlmfc/include" });
+        exe.addLibraryPath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22621.0/um/x64" });
+        exe.addLibraryPath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22621.0/ucrt/x64" });
         exe.addLibraryPath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/lib" });
         exe.linkSystemLibrary("ole32");
         exe.linkSystemLibrary("oleaut32");
