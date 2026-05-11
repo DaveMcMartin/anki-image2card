@@ -80,18 +80,22 @@ pub fn build(b: *std.Build) void {
 
     exe.addCSourceFile(.{ .file = b.path("src/ocr/tess_c_wrapper.c"), .flags = &[_][]const u8{"-O2"} });
 
-    exe.linkLibC();
-
-    // IMPORTANT: Use system libstdc++ on linux to avoid libc++ ABI mismatch with apt packages
     // IMPORTANT: Use system libstdc++ on linux to avoid libc++ ABI mismatch with apt packages
     // (like tesseract, which is compiled against libstdc++'s std::vector)
     if (t.os.tag == .linux) {
+        exe.linkLibC();
         exe.linkSystemLibrary("stdc++");
         exe.linkSystemLibrary("unwind");
     } else if (t.os.tag == .windows) {
-        // When cross compiling or using target msvc, MSVC uses msvcrt natively. Do not link GNU libc++ here.
+        // use MSVC libc++ instead of standard zig one since we target MSVC.
+        // Actually, linkSystemLibrary("stdc++") isn't right for msvc.
+        // MSVC links libcmt implicitly, and libc++ implicitly via its setup.
+        // Zig MSVC target will automatically link correct C++ library if we just call linkLibC() / compile C++.
+        // We do NOT want stdc++ for windows-msvc target. It fails with: "unable to find library stdc++" or links GNU stuff causing ABI issues.
         exe.linkLibC();
+        exe.linkLibCpp();
     } else {
+        exe.linkLibC();
         exe.linkLibCpp();
     }
 
@@ -170,11 +174,10 @@ pub fn build(b: *std.Build) void {
 
     // Tesseract, Leptonica, WebP, MeCab
     if (t.os.tag == .windows) {
-        // vcpkg names
         exe.linkSystemLibrary("tesseract55");
         exe.linkSystemLibrary("leptonica-1.87.0");
-        exe.linkSystemLibrary("webp");
-        exe.linkSystemLibrary("mecab");
+        exe.linkSystemLibrary("libwebp");
+        exe.linkSystemLibrary("libmecab");
     } else {
         exe.linkSystemLibrary("tesseract");
         exe.linkSystemLibrary("lept");
@@ -197,7 +200,6 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("shlwapi");
         exe.linkSystemLibrary("ole32");
         exe.linkSystemLibrary("oleaut32");
-        exe.linkSystemLibrary("windowsapp");
         exe.linkSystemLibrary("mfuuid");
         exe.linkSystemLibrary("mfplat");
         exe.linkSystemLibrary("mfreadwrite");
