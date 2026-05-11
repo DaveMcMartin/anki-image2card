@@ -89,8 +89,8 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("stdc++");
         exe.linkSystemLibrary("unwind");
     } else if (t.os.tag == .windows) {
-        // use libc++ on Windows via Zig
-        exe.linkLibCpp();
+        // When cross compiling or using target msvc, MSVC uses msvcrt natively. Do not link GNU libc++ here.
+        exe.linkLibC();
     } else {
         exe.linkLibCpp();
     }
@@ -173,7 +173,7 @@ pub fn build(b: *std.Build) void {
         // vcpkg names
         exe.linkSystemLibrary("tesseract55");
         exe.linkSystemLibrary("leptonica-1.87.0");
-        exe.linkSystemLibrary("libwebp");
+        exe.linkSystemLibrary("webp");
         exe.linkSystemLibrary("mecab");
     } else {
         exe.linkSystemLibrary("tesseract");
