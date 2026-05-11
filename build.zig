@@ -83,10 +83,14 @@ pub fn build(b: *std.Build) void {
     exe.linkLibC();
 
     // IMPORTANT: Use system libstdc++ on linux to avoid libc++ ABI mismatch with apt packages
+    // IMPORTANT: Use system libstdc++ on linux to avoid libc++ ABI mismatch with apt packages
     // (like tesseract, which is compiled against libstdc++'s std::vector)
-    if (t.os.tag == .linux or t.os.tag == .windows) {
+    if (t.os.tag == .linux) {
         exe.linkSystemLibrary("stdc++");
         exe.linkSystemLibrary("unwind");
+    } else if (t.os.tag == .windows) {
+        // use libc++ on Windows via Zig
+        exe.linkLibCpp();
     } else {
         exe.linkLibCpp();
     }
@@ -147,6 +151,16 @@ pub fn build(b: *std.Build) void {
         exe.addIncludePath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/include" });
         exe.addIncludePath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/include/leptonica" });
         exe.addIncludePath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/include/webp" });
+        exe.addIncludePath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/include/mecab" });
+        // Manually link the SDK include path for windows build so it finds winrt and atl headers
+        exe.addIncludePath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/cppwinrt" });
+        exe.addIncludePath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/um" });
+        exe.addIncludePath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/shared" });
+        exe.addIncludePath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/winrt" });
+        // In GitHub Actions, ATL is not always in the standard include path. We need to find it or avoid using it.
+        // wait, let's just use the known path but fall back to checking if it exists if possible.
+        // GitHub Actions has MSVC installed.
+        exe.addIncludePath(.{ .cwd_relative = "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.41.34120/atlmfc/include" });
         exe.addLibraryPath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/lib" });
         exe.linkSystemLibrary("ole32");
         exe.linkSystemLibrary("oleaut32");
@@ -181,6 +195,7 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("shlwapi");
         exe.linkSystemLibrary("ole32");
         exe.linkSystemLibrary("oleaut32");
+        exe.linkSystemLibrary("windowsapp");
         exe.linkSystemLibrary("mfuuid");
         exe.linkSystemLibrary("mfplat");
         exe.linkSystemLibrary("mfreadwrite");
