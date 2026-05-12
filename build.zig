@@ -70,6 +70,8 @@ pub fn build(b: *std.Build) void {
         "-std=c++23",
         "-fexceptions",
         "-DCPPHTTPLIB_OPENSSL_SUPPORT",
+        "-DNOMINMAX",
+        "-DWIN32_LEAN_AND_MEAN",
         "-O2"
     };
 
@@ -87,13 +89,8 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("stdc++");
         exe.linkSystemLibrary("unwind");
     } else if (t.os.tag == .windows) {
-        // use MSVC libc++ instead of standard zig one since we target MSVC.
-        // Actually, linkSystemLibrary("stdc++") isn't right for msvc.
-        // MSVC links libcmt implicitly, and libc++ implicitly via its setup.
-        // Zig MSVC target will automatically link correct C++ library if we just call linkLibC() / compile C++.
-        // We do NOT want stdc++ for windows-msvc target. It fails with: "unable to find library stdc++" or links GNU stuff causing ABI issues.
+        // For MSVC we simply use linkLibC, no need for libCpp, zig compiler knows what to do for MSVC ABI
         exe.linkLibC();
-        exe.linkLibCpp();
     } else {
         exe.linkLibC();
         exe.linkLibCpp();
@@ -156,6 +153,11 @@ pub fn build(b: *std.Build) void {
         exe.addIncludePath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/include/leptonica" });
         exe.addIncludePath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/include/webp" });
         exe.addIncludePath(.{ .cwd_relative = "C:/vcpkg/installed/x64-windows/include/mecab" });
+
+        exe.addLibraryPath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22621.0/um/x64" });
+        exe.addLibraryPath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.26100.0/um/x64" });
+        exe.addLibraryPath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22621.0/ucrt/x64" });
+        exe.addLibraryPath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.26100.0/ucrt/x64" });
         // Manually link the SDK include path for windows build so it finds winrt and atl headers
         exe.addIncludePath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/cppwinrt" });
         exe.addIncludePath(.{ .cwd_relative = "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/um" });
@@ -200,6 +202,7 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("shlwapi");
         exe.linkSystemLibrary("ole32");
         exe.linkSystemLibrary("oleaut32");
+        exe.linkSystemLibrary("windowsapp");
         exe.linkSystemLibrary("mfuuid");
         exe.linkSystemLibrary("mfplat");
         exe.linkSystemLibrary("mfreadwrite");
