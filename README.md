@@ -1,3 +1,5 @@
+> **Note:** Creating audio using AI for language learning has not been a good idea since the beginning. I recommend using an OCR tool to extract the text, then use a sentence bank with audio from natives such as [Jitori](https://jitori.davidmartins.net) or [Sentence Search](https://sentencesearch.neocities.org/).
+
 # Anki Image2Card
 
 Anki Image2Card is a modern C++23 cross-platform desktop application designed to streamline the process of creating high-quality Anki cards from images. It leverages modern AI technologies for OCR, text analysis, and audio generation to automate the card creation workflow.
